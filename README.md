@@ -1,5 +1,7 @@
 # Minha viagem à China - globo 3D interativo
 
+我的旅行 (wǒ de lǚxíng)
+
 > **Acesse o site:** [zhujaxuen.github.io/myTrip](https://zhujaxuen.github.io/myTrip/)
 
 Globo 3D interativo feito com Three.js para visualizar o roteiro da viagem,
