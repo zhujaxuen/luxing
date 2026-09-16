@@ -2,7 +2,7 @@
 
 我的旅行 (wǒ de lǚxíng)
 
-> **Acesse o site:** [zhujaxuen.github.io/myTrip](https://zhujaxuen.github.io/myTrip/)
+> **Acesse o site:** [zhujaxuen.github.io/myTrip](https://zhujaxuen.github.io/luxing/)
 
 Globo 3D interativo feito com Three.js para visualizar o roteiro da viagem,
 seus locais e os trajetos de avião e trem. O projeto e um site estatico: nao
