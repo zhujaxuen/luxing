@@ -1,50 +1,66 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Minha viagem à China</title>
-  <link rel="stylesheet" href="style.css" />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Minha viagem à China</title>
+<link rel="icon" type="image/svg+xml" href="favicon-selo.svg" id="favicon-link" />
+<link rel="alternate icon" href="favicon.ico" />
+<link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <canvas id="globe-canvas"></canvas>
+<canvas id="globe-canvas"></canvas>
 
-  <header>
-    <div class="title-block">
-      <h1 id="trip-title">Minha viagem à China</h1>
-      <p id="trip-subtitle">Um roteiro pelo país, do norte imperial ao sul tropical</p>
-      <div class="stats" id="stats" aria-label="Estatísticas da viagem"></div>
-    </div>
-    <div class="header-controls">
-      <button id="overview-toggle" class="overview-toggle" type="button" hidden>
-        Visão geral
-      </button>
-      <button id="rotation-toggle" class="rotation-toggle" type="button" aria-pressed="false">
-        Iniciar giro
-      </button>
-      <div class="legend" id="legend"></div>
-    </div>
-  </header>
+<header>
+<div class="title-block">
+<h1 id="trip-title">Minha viagem à China</h1>
+<p id="trip-subtitle">Um roteiro pelo país, do norte imperial ao sul tropical</p>
+<div class="stats" id="stats" aria-label="Estatísticas da viagem"></div>
+</div>
+<div class="header-controls">
+<button id="overview-toggle" class="overview-toggle" type="button" hidden>
+Visão geral
+</button>
+<button id="rotation-toggle" class="rotation-toggle" type="button" aria-pressed="false">
+Iniciar giro
+</button>
+<div class="legend" id="legend"></div>
+</div>
+</header>
 
-  <div id="panel">
-    <div class="timeline" id="timeline"></div>
-  </div>
+<div id="panel">
+<div class="timeline" id="timeline"></div>
+</div>
 
-  <div id="floating-card">
-    <h4 id="fc-name"></h4>
-    <span id="fc-date"></span>
-  </div>
+<div id="floating-card">
+<h4 id="fc-name"></h4>
+<span id="fc-date"></span>
+</div>
 
-  <div class="hint">arraste para girar · role para dar zoom</div>
+<div class="hint">arraste para girar · role para dar zoom</div>
 
-  <script type="importmap">
-    {
-      "imports": {
-        "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
-        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
-      }
-    }
-  </script>
-  <script type="module" src="main.js"></script>
+<script type="importmap">
+{
+"imports": {
+"three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+"three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+}
+}
+</script>
+<script type="module" src="main.js"></script>
+<script>
+  // Alterna o favicon entre a versão vermelho-selo e a céu-noturno a cada
+  // alguns segundos. Puramente decorativo — pode remover este bloco (e a
+  // linha do favicon-noturno.svg) se preferir um ícone fixo só.
+  (function () {
+    const FAVICONS = ["favicon-selo.svg", "favicon-noturno.svg"];
+    const link = document.getElementById("favicon-link");
+    let i = 0;
+    setInterval(() => {
+      i = (i + 1) % FAVICONS.length;
+      link.href = FAVICONS[i];
+    }, 6000);
+  })();
+</script>
 </body>
 </html>

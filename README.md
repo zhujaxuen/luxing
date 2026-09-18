@@ -1,7 +1,6 @@
 # Minha viagem à China - globo 3D interativo
 
 我的旅行 (wǒ de lǚxíng)
-
 > **Acesse o site:** [zhujaxuen.github.io/luxing](https://zhujaxuen.github.io/luxing/)
 
 Globo 3D interativo feito com Three.js para visualizar o roteiro da viagem,
@@ -46,8 +45,8 @@ routes: [
 
 - Para **adicionar um novo local**: copie um bloco dentro de `stops` e troque
   os valores.
-- Para **adicionar um trajeto**: adicione uma linha em `routes` com os `id`
-  de origem (`from`) e destino (`to`).
+- Para **adicionar um trajeto**: adicione uma linha em `routes` com os `id` de
+  origem (`from`) e destino (`to`).
 - A ordem dos `stops` é a ordem que aparece na linha do tempo lateral.
 
 ## Rodar localmente
@@ -66,7 +65,7 @@ python3 -m http.server 8000
 npx serve .
 ```
 
-Depois, acesse [http://localhost:8000](http://localhost:8000).
+Depois, acesse <http://localhost:8000>.
 
 ## Publicar no GitHub Pages
 
@@ -77,17 +76,25 @@ Depois, acesse [http://localhost:8000](http://localhost:8000).
 
 Neste projeto, o endereco publicado e:
 
-[https://zhujaxuen.github.io/myTrip/](https://zhujaxuen.github.io/myTrip/)
+<https://zhujaxuen.github.io/luxing/>
 
 ## Estrutura dos arquivos
 
 ```
-├── index.html   → estrutura da página
-├── style.css    → visual (cores, tipografia, painel lateral)
-├── data.js      → SEUS DADOS: locais e trajetos da viagem
-├── main.js      → lógica do globo 3D (Three.js)
-└── README.md    → este arquivo
+├── index.html            → estrutura da página
+├── style.css              → visual (cores, tipografia, painel lateral)
+├── data.js                 → SEUS DADOS: locais e trajetos da viagem
+├── main.js                  → lógica do globo 3D (Three.js)
+├── favicon-selo.svg         → ícone 中国 vermelho-selo (padrão)
+├── favicon-noturno.svg      → ícone 中国 céu-noturno (alterna com o de cima)
+├── favicon.ico               → fallback para navegadores sem suporte a SVG favicon
+└── README.md                  → este arquivo
 ```
+
+O ícone da aba do navegador alterna sozinho entre as duas versões a cada 6
+segundos (efeito puramente decorativo). Para deixar fixo em uma só, edite o
+bloco `<script>` no final do `index.html` e apague o `setInterval`, deixando
+só `link.href = "favicon-selo.svg";`.
 
 ## Personalizações rápidas
 
