@@ -119,7 +119,6 @@ overviewToggle.addEventListener("click", () => {
   });
 });
 
-
 const globe = new THREE.Mesh(
   new THREE.SphereGeometry(GLOBE_RADIUS, 96, 96),
   new THREE.MeshPhongMaterial({
@@ -190,7 +189,6 @@ function createCityLabel(text) {
   canvas.width = Math.ceil(textWidth + horizontalPadding * 2);
   canvas.height = 32;
   context.font = font;
-
   context.fillStyle = "#edeae2";
   context.strokeStyle = "rgba(10, 14, 26, 0.95)";
   context.lineWidth = 4;
@@ -219,10 +217,9 @@ function createCityLabel(text) {
 function buildMarkers() {
   TRIP.stops.forEach((stop) => {
     if (stop.showMarker === false) return;
-
     const pos = latLonToVector3(stop.lat, stop.lon, GLOBE_RADIUS);
-    let label = null;
 
+    let label = null;
     const markerGroup = new THREE.Group();
     markerGroup.position.copy(pos);
     markerGroup.lookAt(pos.clone().multiplyScalar(2));
@@ -273,7 +270,6 @@ function updateMarkerScale() {
   markerObjects.forEach((marker) => {
     marker.dot.scale.setScalar(dotScale);
     marker.ring.scale.setScalar(marker.ring.userData.pulse * ringScale);
-
     if (marker.label) {
       marker.label.scale.copy(marker.label.userData.baseScale).multiplyScalar(labelScale);
     }
@@ -285,45 +281,34 @@ function updateMarkerScale() {
 // ============================================================
 
 const routeObjects = []; // { line, icon, type }
-const FLIGHT_DURATION_SECONDS = 10;
-const LONG_FLIGHT_DURATION_SECONDS = 6;
-const TRAIN_DURATION_SECONDS = 6;
+const FLIGHT_DURATION_SECONDS = 14;
+const LONG_FLIGHT_DURATION_SECONDS = 10;
+const TRAIN_DURATION_SECONDS = 9;
 const ROUTES_WITHOUT_ICON = new Set(["nanjing:yangzhou"]);
-const CAMERA_FOLLOW_ROUTE_KEYS = new Set([
-  "sao-paulo:istambul",
-  "istambul:guangzhou",
-]);
+const CAMERA_FOLLOW_ROUTE_KEYS = new Set(["sao-paulo:istambul", "istambul:guangzhou"]);
+
 let activeCameraFollow = null;
 const routeIconWorldPosition = new THREE.Vector3();
 
 function createRouteIcon(type) {
-  const symbols = {
-    voo: String.fromCodePoint(0x2708),
-    trem: String.fromCodePoint(0x1f686),
-  };
-  const symbol = symbols[type];
-  if (!symbol) return null;
-  const canvas = document.createElement("canvas");
-  canvas.width = 64;
-  canvas.height = 64;
-  const context = canvas.getContext("2d");
-  // Mantém o avião com o mesmo glifo original; apenas o trem usa a fonte emoji.
-  context.font =
-    type === "voo"
-      ? '600 22px "Segoe UI Symbol", sans-serif'
-      : '600 22px "Segoe UI Emoji", "Segoe UI Symbol", sans-serif';
-  context.textAlign = "center";
-  context.textBaseline = "middle";
-  context.fillStyle = "#ffffff";
-  context.strokeStyle = "#05070d";
-  context.lineWidth = 2;
-  context.lineJoin = "round";
-  context.strokeText(symbol, 32, 32);
-  context.fillText(symbol, 32, 32);
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
   if (type === "trem") {
+    const symbol = String.fromCodePoint(0x1f686);
+    const canvas = document.createElement("canvas");
+    canvas.width = 64;
+    canvas.height = 64;
+    const context = canvas.getContext("2d");
+    context.font = '600 22px "Segoe UI Emoji", "Segoe UI Symbol", sans-serif';
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    context.fillStyle = "#ffffff";
+    context.strokeStyle = "#05070d";
+    context.lineWidth = 2;
+    context.lineJoin = "round";
+    context.strokeText(symbol, 32, 32);
+    context.fillText(symbol, 32, 32);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
     const icon = new THREE.Sprite(
       new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: true })
     );
@@ -332,23 +317,53 @@ function createRouteIcon(type) {
     return icon;
   }
 
-  const icon = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.08, 0.08),
-    new THREE.MeshBasicMaterial({
-      map: texture,
-      transparent: true,
-      side: THREE.DoubleSide,
-      depthTest: true,
-      depthWrite: false,
-    })
-  );
-  icon.visible = false;
-  return icon;
+  if (type === "voo") {
+    // Desenhado como vetor (e não como o glifo de fonte "✈") de propósito:
+    // fontes de emoji diferentes (Windows "Segoe UI Symbol" vs. as fontes
+    // nativas de iOS/Android) desenham a "frente" do avião em ângulos
+    // diferentes. Isso fazia a rotação calculada em positionFlightIcon()
+    // ficar correta só no Windows/desktop e errada no celular. Um triângulo
+    // desenhado à mão tem o "nariz" sempre no mesmo lugar (canvas x=56,
+    // apontando para o eixo local +X), então a rotação fica certa em
+    // qualquer aparelho.
+    const canvas = document.createElement("canvas");
+    canvas.width = 64;
+    canvas.height = 64;
+    const context = canvas.getContext("2d");
+    context.fillStyle = "#f2efe6";
+    context.strokeStyle = "#05070d";
+    context.lineWidth = 2.5;
+    context.lineJoin = "round";
+    context.beginPath();
+    context.moveTo(57, 32); // nariz do avião
+    context.lineTo(15, 13); // ponta da asa traseira (de cima)
+    context.lineTo(26, 32); // reentrância central (formato de dardo)
+    context.lineTo(15, 51); // ponta da asa traseira (de baixo)
+    context.closePath();
+    context.fill();
+    context.stroke();
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    const icon = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.09, 0.09),
+      new THREE.MeshBasicMaterial({
+        map: texture,
+        transparent: true,
+        side: THREE.DoubleSide,
+        depthTest: true,
+        depthWrite: false,
+      })
+    );
+    icon.visible = false;
+    return icon;
+  }
+
+  return null;
 }
 
 function positionFlightIcon(icon, curve, progress) {
   icon.position.copy(curve.getPointAt(progress));
-
   // O eixo X do desenho do avião aponta para a frente. Alinhamos esse eixo
   // com a tangente da curva para que ele siga o sentido origem → destino.
   const direction = curve.getTangentAt(progress).normalize();
@@ -375,7 +390,6 @@ function getFlightDuration(route) {
 
 function startCameraFollow(route) {
   if (route.hasCameraFollowed || !route.icon) return false;
-
   const now = clock.getElapsedTime();
   route.hasCameraFollowed = true;
   route.animationStartedAt = now;
@@ -417,6 +431,7 @@ function buildRoutes() {
 
     const line = new THREE.Line(geometry, material);
     globeGroup.add(line);
+
     const routeKey = `${route.from}:${route.to}`;
     const icon = ROUTES_WITHOUT_ICON.has(routeKey) ? null : createRouteIcon(route.type);
     if (icon) {
@@ -426,6 +441,7 @@ function buildRoutes() {
       }
       globeGroup.add(icon);
     }
+
     routeObjects.push({
       line,
       icon,
@@ -506,13 +522,14 @@ function buildStats() {
     today.setHours(0, 0, 0, 0);
     const departure = new Date(`${TRIP.startDate}T00:00:00`);
     const days = Math.round((departure - today) / 86400000);
-    countdown = days > 1
-      ? `faltam <strong>${days}</strong> dias`
-      : days === 1
+    countdown =
+      days > 1
+        ? `faltam <strong>${days}</strong> dias`
+        : days === 1
         ? "falta <strong>1</strong> dia"
         : days === 0
-          ? "a viagem começa <strong>hoje</strong> 🎉"
-          : "a viagem já começou 🎉";
+        ? "a viagem começa <strong>hoje</strong> 🎉"
+        : "a viagem já começou 🎉";
   }
 
   stats.innerHTML = `
@@ -522,6 +539,49 @@ function buildStats() {
   `;
 }
 buildStats();
+
+// ============================================================
+// Distância e tempo estimado até a próxima cidade
+// ============================================================
+
+// Velocidades médias usadas para estimar o tempo de deslocamento de cada
+// tipo de trajeto. Trens são tratados como trens de alta velocidade.
+const AVERAGE_SPEED_KMH = {
+  voo: 800,
+  trem: 300,
+  metro: 40,
+  onibus: 65,
+};
+
+function formatDuration(hours) {
+  const totalMinutes = Math.round(hours * 60);
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  if (h === 0) return `${m} min`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}min`;
+}
+
+function getNextLegInfo(stopId) {
+  const route = TRIP.routes.find((r) => r.from === stopId);
+  if (!route) return null;
+
+  const stopsById = Object.fromEntries(TRIP.stops.map((s) => [s.id, s]));
+  const from = stopsById[route.from];
+  const to = stopsById[route.to];
+  if (!from || !to) return null;
+
+  const km = haversineKm(from, to);
+  const speed = AVERAGE_SPEED_KMH[route.type] || AVERAGE_SPEED_KMH.voo;
+  const style = ROUTE_STYLES[route.type] || ROUTE_STYLES.voo;
+
+  return {
+    toName: to.name,
+    km: Math.round(km),
+    duration: formatDuration(km / speed),
+    typeLabel: style.label,
+  };
+}
 
 // ============================================================
 // Painel lateral (linha do tempo)
@@ -539,12 +599,13 @@ function updateTimelineState() {
 
 function buildTimeline() {
   const timeline = document.getElementById("timeline");
-
   let currentPhase = null;
+
   TRIP.stops.forEach((stop) => {
     let phase = currentPhase || "deslocamento";
     if (stop.id === "guangzhou") phase = "roteiro";
     if (stop.id === "guangzhou-retorno") phase = "retorno";
+
     if (phase !== currentPhase) {
       const section = document.createElement("div");
       section.className = `timeline-section ${phase}`;
@@ -557,6 +618,14 @@ function buildTimeline() {
       currentPhase = phase;
     }
 
+    const legInfo = getNextLegInfo(stop.id);
+    const routeInfoHTML = legInfo
+      ? `<div class="route-info">
+           <strong>${legInfo.km.toLocaleString("pt-BR")} km</strong> até ${legInfo.toName}
+           · cerca de ${legInfo.duration} de ${legInfo.typeLabel.toLowerCase()}
+         </div>`
+      : "";
+
     const el = document.createElement("div");
     el.className = "stop";
     el.dataset.id = stop.id;
@@ -565,6 +634,7 @@ function buildTimeline() {
       <h3>${stop.name}</h3>
       <div class="tag">${stop.tag}</div>
       <p>${stop.description}</p>
+      ${routeInfoHTML}
     `;
     el.addEventListener("click", () => selectStop(stop.id, true));
     timeline.appendChild(el);
@@ -575,11 +645,11 @@ buildTimeline();
 function selectStop(id, flyTo) {
   activeStopId = id;
   activeCameraFollow = null;
-
   updateTimelineState();
 
   const selectedStop = TRIP.stops.find((stop) => stop.id === id);
   const marker = markerObjects.find((m) => m.stop.id === id);
+
   if (selectedStop) {
     routeObjects.forEach((route) => {
       const isOutbound = route.from === id;
@@ -587,7 +657,6 @@ function selectStop(id, flyTo) {
       route.line.material.opacity = 0.9;
       if (route.icon) route.icon.visible = isOutbound;
     });
-
   }
 
   const routeToFollow = routeObjects.find(
@@ -596,6 +665,7 @@ function selectStop(id, flyTo) {
       CAMERA_FOLLOW_ROUTE_KEYS.has(`${route.from}:${route.to}`) &&
       route.icon
   );
+
   const isStartingCameraFollow =
     Boolean(selectedStop && flyTo && routeToFollow) && startCameraFollow(routeToFollow);
 
@@ -604,9 +674,8 @@ function selectStop(id, flyTo) {
       ? marker.group.getWorldPosition(markerWorldPosition).clone()
       : latLonToVector3(selectedStop.lat, selectedStop.lon, GLOBE_RADIUS);
     const target = position.normalize().multiplyScalar(3.8);
-    const focusTarget = window.innerWidth <= 720
-      ? globeGroup.position.clone()
-      : controls.target.clone();
+    const focusTarget =
+      window.innerWidth <= 720 ? globeGroup.position.clone() : controls.target.clone();
     animateCamera(target, focusTarget);
     overviewToggle.hidden = false;
   }
@@ -705,12 +774,10 @@ function animate() {
 
   routeObjects.forEach((route) => {
     if (!route.icon || !route.icon.visible) return;
-
     if (route.type === "voo") {
       const progress = getRouteProgress(route, getFlightDuration(route), elapsed);
       positionFlightIcon(route.icon, route.curve, progress);
     }
-
     if (route.type === "trem") {
       const progress = getRouteProgress(route, TRAIN_DURATION_SECONDS, elapsed);
       route.icon.position.copy(route.curve.getPointAt(progress));

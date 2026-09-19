@@ -213,6 +213,7 @@ header p {
 #panel::-webkit-scrollbar {
   width: 6px;
 }
+
 #panel::-webkit-scrollbar-thumb {
   background: rgba(237, 234, 226, 0.15);
   border-radius: 3px;
@@ -330,6 +331,29 @@ header p {
 .stop.active p {
   max-height: 200px;
   opacity: 1;
+}
+
+/* Distância + tempo estimado até a próxima cidade (some/aparece junto com
+   a descrição, só quando a parada está expandida) */
+.stop .route-info {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--gold);
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.25s ease, opacity 0.25s ease, margin 0.25s ease;
+}
+
+.stop.active .route-info {
+  max-height: 60px;
+  opacity: 1;
+  margin-top: 6px;
+}
+
+.stop .route-info strong {
+  color: var(--text);
 }
 
 /* ---------- Cartão flutuante ao clicar num ponto do globo ---------- */
