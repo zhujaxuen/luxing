@@ -285,9 +285,9 @@ function updateMarkerScale() {
 // ============================================================
 
 const routeObjects = []; // { line, icon, type }
-const FLIGHT_DURATION_SECONDS = 14;
-const LONG_FLIGHT_DURATION_SECONDS = 10;
-const TRAIN_DURATION_SECONDS = 9;
+const FLIGHT_DURATION_SECONDS = 10;
+const LONG_FLIGHT_DURATION_SECONDS = 6;
+const TRAIN_DURATION_SECONDS = 6;
 const ROUTES_WITHOUT_ICON = new Set(["nanjing:yangzhou"]);
 const CAMERA_FOLLOW_ROUTE_KEYS = new Set([
   "sao-paulo:istambul",
