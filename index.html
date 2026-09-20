@@ -18,6 +18,11 @@
 <div class="stats" id="stats" aria-label="Estatísticas da viagem"></div>
 </div>
 <div class="header-controls">
+<div class="lang-switcher" id="lang-switcher" aria-label="Idioma / Language / 语言">
+<button type="button" data-lang="pt">PT</button>
+<button type="button" data-lang="en">EN</button>
+<button type="button" data-lang="zh">中文</button>
+</div>
 <button id="overview-toggle" class="overview-toggle" type="button" hidden>
 Visão geral
 </button>
@@ -37,7 +42,7 @@ Iniciar giro
 <span id="fc-date"></span>
 </div>
 
-<div class="hint">arraste para girar · role para dar zoom</div>
+<div class="hint" id="hint-text">arraste para girar · role para dar zoom</div>
 
 <script type="importmap">
 {

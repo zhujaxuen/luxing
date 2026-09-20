@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { TRIP, ROUTE_STYLES } from "./data.js";
+import { TRANSLATIONS } from "./translations.js";
 
 // ============================================================
 // Configuração básica
@@ -8,8 +9,42 @@ import { TRIP, ROUTE_STYLES } from "./data.js";
 
 const GLOBE_RADIUS = 2;
 
-document.getElementById("trip-title").textContent = TRIP.title;
-document.getElementById("trip-subtitle").textContent = TRIP.subtitle;
+// ============================================================
+// Idioma
+// ============================================================
+// Português vem direto do data.js (é o idioma "fonte"). Inglês e mandarim
+// vêm do translations.js. Sempre que currentLang for "pt", usamos o valor
+// original; nos outros casos, buscamos a tradução com fallback pro
+// português caso falte alguma chave.
+
+const SUPPORTED_LANGS = ["pt", "en", "zh"];
+let currentLang = localStorage.getItem("luxing-lang") || "pt";
+if (!SUPPORTED_LANGS.includes(currentLang)) currentLang = "pt";
+
+function t(stopId, field, fallback) {
+  if (currentLang === "pt") return fallback;
+  return TRANSLATIONS[currentLang]?.stops?.[stopId]?.[field] ?? fallback;
+}
+
+function tUI(key, fallback) {
+  if (currentLang === "pt") return fallback;
+  return TRANSLATIONS[currentLang]?.ui?.[key] ?? fallback;
+}
+
+function tTrip(field, fallback) {
+  if (currentLang === "pt") return fallback;
+  return TRANSLATIONS[currentLang]?.trip?.[field] ?? fallback;
+}
+
+function tRouteLabel(type) {
+  const fallback = (ROUTE_STYLES[type] || ROUTE_STYLES.voo).label;
+  if (currentLang === "pt") return fallback;
+  return TRANSLATIONS[currentLang]?.routeLabels?.[type] ?? fallback;
+}
+
+
+document.getElementById("trip-title").textContent = tTrip("title", TRIP.title);
+document.getElementById("trip-subtitle").textContent = tTrip("subtitle", TRIP.subtitle);
 
 const canvas = document.getElementById("globe-canvas");
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
@@ -100,10 +135,21 @@ let isAutoRotating = false;
 const rotationToggle = document.getElementById("rotation-toggle");
 const overviewToggle = document.getElementById("overview-toggle");
 
+// Sincroniza o texto inicial dos botões e da dica com o idioma salvo
+// (o HTML vem em português por padrão).
+rotationToggle.textContent = tUI("startRotation", "Iniciar giro");
+overviewToggle.textContent = tUI("overview", "Visão geral");
+const initialHintEl = document.getElementById("hint-text");
+if (initialHintEl) {
+  initialHintEl.textContent = tUI("hint", "arraste para girar · role para dar zoom");
+}
+
 rotationToggle.addEventListener("click", () => {
   isAutoRotating = !isAutoRotating;
   rotationToggle.setAttribute("aria-pressed", String(isAutoRotating));
-  rotationToggle.textContent = isAutoRotating ? "Parar giro" : "Iniciar giro";
+  rotationToggle.textContent = isAutoRotating
+    ? tUI("stopRotation", "Parar giro")
+    : tUI("startRotation", "Iniciar giro");
 });
 
 overviewToggle.addEventListener("click", () => {
@@ -242,7 +288,7 @@ function buildMarkers() {
     markerGroup.add(ring);
 
     if (stop.showLabel !== false) {
-      label = createCityLabel(stop.name);
+      label = createCityLabel(t(stop.id, "name", stop.name));
       if (stop.labelOffset) {
         label.position.fromArray(stop.labelOffset);
       }
@@ -254,6 +300,22 @@ function buildMarkers() {
   });
 }
 buildMarkers();
+
+function rebuildMarkerLabels() {
+  markerObjects.forEach((marker) => {
+    if (!marker.label) return;
+    marker.group.remove(marker.label);
+    marker.label.material.map.dispose();
+    marker.label.material.dispose();
+
+    const newLabel = createCityLabel(t(marker.stop.id, "name", marker.stop.name));
+    if (marker.stop.labelOffset) {
+      newLabel.position.fromArray(marker.stop.labelOffset);
+    }
+    marker.group.add(newLabel);
+    marker.label = newLabel;
+  });
+}
 
 function updateMarkerScale() {
   const distance = camera.position.distanceTo(globeGroup.position);
@@ -322,23 +384,27 @@ function createRouteIcon(type) {
     // fontes de emoji diferentes (Windows "Segoe UI Symbol" vs. as fontes
     // nativas de iOS/Android) desenham a "frente" do avião em ângulos
     // diferentes. Isso fazia a rotação calculada em positionFlightIcon()
-    // ficar correta só no Windows/desktop e errada no celular. Um triângulo
-    // desenhado à mão tem o "nariz" sempre no mesmo lugar (canvas x=56,
-    // apontando para o eixo local +X), então a rotação fica certa em
-    // qualquer aparelho.
+    // ficar correta só no Windows/desktop e errada no celular. Um desenho
+    // vetorial (silhueta de avião) tem o "nariz" sempre no mesmo lugar
+    // (canvas x=58, apontando para o eixo local +X), então a rotação fica
+    // certa em qualquer aparelho.
     const canvas = document.createElement("canvas");
     canvas.width = 64;
     canvas.height = 64;
     const context = canvas.getContext("2d");
     context.fillStyle = "#f2efe6";
     context.strokeStyle = "#05070d";
-    context.lineWidth = 2.5;
+    context.lineWidth = 2;
     context.lineJoin = "round";
     context.beginPath();
-    context.moveTo(57, 32); // nariz do avião
-    context.lineTo(15, 13); // ponta da asa traseira (de cima)
-    context.lineTo(26, 32); // reentrância central (formato de dardo)
-    context.lineTo(15, 51); // ponta da asa traseira (de baixo)
+    context.moveTo(58, 32); // nariz — aponta para o eixo local +X (sentido do voo)
+    context.lineTo(14, 8); // ponta da asa principal (de cima)
+    context.lineTo(34, 28); // raiz da asa / topo da fuselagem
+    context.lineTo(10, 20); // ponta da asa traseira (de cima)
+    context.lineTo(18, 32); // reentrância central (cauda)
+    context.lineTo(10, 44); // ponta da asa traseira (de baixo)
+    context.lineTo(34, 36); // raiz da asa / base da fuselagem
+    context.lineTo(14, 56); // ponta da asa principal (de baixo)
     context.closePath();
     context.fill();
     context.stroke();
@@ -464,13 +530,14 @@ buildRoutes();
 
 function buildLegend() {
   const legend = document.getElementById("legend");
+  legend.innerHTML = "";
   const usedTypes = [...new Set(TRIP.routes.map((r) => r.type))];
 
   usedTypes.forEach((type) => {
     const style = ROUTE_STYLES[type] || ROUTE_STYLES.voo;
     const btn = document.createElement("button");
     const hex = "#" + style.color.toString(16).padStart(6, "0");
-    btn.innerHTML = `<span class="dot" style="background:${hex}"></span>${style.label}`;
+    btn.innerHTML = `<span class="dot" style="background:${hex}"></span>${tRouteLabel(type)}`;
     btn.dataset.type = type;
 
     btn.addEventListener("click", () => {
@@ -522,19 +589,27 @@ function buildStats() {
     today.setHours(0, 0, 0, 0);
     const departure = new Date(`${TRIP.startDate}T00:00:00`);
     const days = Math.round((departure - today) / 86400000);
-    countdown =
-      days > 1
-        ? `faltam <strong>${days}</strong> dias`
-        : days === 1
-        ? "falta <strong>1</strong> dia"
-        : days === 0
-        ? "a viagem começa <strong>hoje</strong> 🎉"
-        : "a viagem já começou 🎉";
+    const uiStrings = currentLang !== "pt" ? TRANSLATIONS[currentLang]?.ui : null;
+
+    if (days > 1) {
+      countdown = uiStrings
+        ? uiStrings.countdownDays(days)
+        : `faltam <strong>${days}</strong> dias`;
+    } else if (days === 1) {
+      countdown = uiStrings ? uiStrings.countdownOneDay : "falta <strong>1</strong> dia";
+    } else if (days === 0) {
+      countdown = uiStrings ? uiStrings.countdownToday : "a viagem começa <strong>hoje</strong> 🎉";
+    } else {
+      countdown = uiStrings ? uiStrings.countdownStarted : "a viagem já começou 🎉";
+    }
   }
 
+  const stopsLabel = currentLang === "pt" ? "paradas" : tUI("statsStops", "stops");
+  const kmLabel = currentLang === "pt" ? "km" : tUI("statsKmSuffix", "km");
+
   stats.innerHTML = `
-    <span><strong>${TRIP.stops.length}</strong> paradas</span>
-    <span><strong>${Math.round(totalKm).toLocaleString("pt-BR")}</strong> km</span>
+    <span><strong>${TRIP.stops.length}</strong> ${stopsLabel}</span>
+    <span><strong>${Math.round(totalKm).toLocaleString("pt-BR")}</strong> ${kmLabel}</span>
     ${countdown ? `<span>${countdown}</span>` : ""}
   `;
 }
@@ -573,13 +648,12 @@ function getNextLegInfo(stopId) {
 
   const km = haversineKm(from, to);
   const speed = AVERAGE_SPEED_KMH[route.type] || AVERAGE_SPEED_KMH.voo;
-  const style = ROUTE_STYLES[route.type] || ROUTE_STYLES.voo;
 
   return {
-    toName: to.name,
+    toName: t(to.id, "name", to.name),
     km: Math.round(km),
     duration: formatDuration(km / speed),
-    typeLabel: style.label,
+    typeLabel: tRouteLabel(route.type),
   };
 }
 
@@ -599,6 +673,7 @@ function updateTimelineState() {
 
 function buildTimeline() {
   const timeline = document.getElementById("timeline");
+  timeline.innerHTML = "";
   let currentPhase = null;
 
   TRIP.stops.forEach((stop) => {
@@ -610,37 +685,106 @@ function buildTimeline() {
       const section = document.createElement("div");
       section.className = `timeline-section ${phase}`;
       section.textContent = {
-        deslocamento: "Deslocamento para China",
-        roteiro: "Roteiro pela China",
-        retorno: "Retorno ao Brasil",
+        deslocamento: tUI("timelineDeslocamento", "Deslocamento para China"),
+        roteiro: tUI("timelineRoteiro", "Roteiro pela China"),
+        retorno: tUI("timelineRetorno", "Retorno ao Brasil"),
       }[phase];
       timeline.appendChild(section);
       currentPhase = phase;
     }
 
     const legInfo = getNextLegInfo(stop.id);
-    const routeInfoHTML = legInfo
-      ? `<div class="route-info">
+    let routeInfoHTML = "";
+    if (legInfo) {
+      if (currentLang === "pt") {
+        routeInfoHTML = `<div class="route-info">
            <strong>${legInfo.km.toLocaleString("pt-BR")} km</strong> até ${legInfo.toName}
            · cerca de ${legInfo.duration} de ${legInfo.typeLabel.toLowerCase()}
-         </div>`
-      : "";
+         </div>`;
+      } else {
+        const kmFormatted = legInfo.km.toLocaleString(currentLang === "zh" ? "zh-CN" : "en-US");
+        routeInfoHTML = `<div class="route-info">${TRANSLATIONS[currentLang].ui.routeInfo(
+          kmFormatted,
+          legInfo.toName,
+          legInfo.duration,
+          legInfo.typeLabel.toLowerCase()
+        )}</div>`;
+      }
+    }
 
     const el = document.createElement("div");
     el.className = "stop";
     el.dataset.id = stop.id;
     el.innerHTML = `
-      <div class="date">${stop.date}</div>
-      <h3>${stop.name}</h3>
-      <div class="tag">${stop.tag}</div>
-      <p>${stop.description}</p>
+      <div class="date">${t(stop.id, "date", stop.date)}</div>
+      <h3>${t(stop.id, "name", stop.name)}</h3>
+      <div class="tag">${t(stop.id, "tag", stop.tag)}</div>
+      <p>${t(stop.id, "description", stop.description)}</p>
       ${routeInfoHTML}
     `;
     el.addEventListener("click", () => selectStop(stop.id, true));
     timeline.appendChild(el);
   });
+
+  updateTimelineState();
 }
 buildTimeline();
+
+// ============================================================
+// Seletor de idioma
+// ============================================================
+
+function applyLanguage(lang) {
+  if (!SUPPORTED_LANGS.includes(lang) || lang === currentLang) return;
+  currentLang = lang;
+  localStorage.setItem("luxing-lang", lang);
+
+  document.getElementById("trip-title").textContent = tTrip("title", TRIP.title);
+  document.getElementById("trip-subtitle").textContent = tTrip("subtitle", TRIP.subtitle);
+
+  rotationToggle.textContent = isAutoRotating
+    ? tUI("stopRotation", "Parar giro")
+    : tUI("startRotation", "Iniciar giro");
+  overviewToggle.textContent = tUI("overview", "Visão geral");
+
+  const hintEl = document.getElementById("hint-text");
+  if (hintEl) hintEl.textContent = tUI("hint", "arraste para girar · role para dar zoom");
+
+  // Preserva quais tipos de rota estavam filtrados (desligados) na legenda
+  // antes de reconstruí-la com os novos rótulos.
+  const previouslyOffTypes = [...document.querySelectorAll(".legend button.off")].map(
+    (btn) => btn.dataset.type
+  );
+
+  buildLegend();
+  document.querySelectorAll(".legend button").forEach((btn) => {
+    if (previouslyOffTypes.includes(btn.dataset.type)) {
+      btn.classList.add("off");
+      routeObjects
+        .filter((r) => r.type === btn.dataset.type)
+        .forEach((r) => {
+          r.line.visible = false;
+          if (r.icon) r.icon.visible = false;
+        });
+    }
+  });
+
+  buildStats();
+  buildTimeline();
+  rebuildMarkerLabels();
+
+  document.querySelectorAll(".lang-switcher button").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.lang === lang);
+  });
+}
+
+const langSwitcher = document.getElementById("lang-switcher");
+if (langSwitcher) {
+  langSwitcher.querySelectorAll("button").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.lang === currentLang);
+    btn.addEventListener("click", () => applyLanguage(btn.dataset.lang));
+  });
+}
 
 function selectStop(id, flyTo) {
   activeStopId = id;
@@ -719,8 +863,8 @@ function onPointerMove(event) {
   if (hits.length > 0) {
     const hit = markerObjects.find((m) => m.dot === hits[0].object);
     document.body.style.cursor = "pointer";
-    fcName.textContent = hit.stop.name;
-    fcDate.textContent = hit.stop.date;
+    fcName.textContent = t(hit.stop.id, "name", hit.stop.name);
+    fcDate.textContent = t(hit.stop.id, "date", hit.stop.date);
     floatingCard.style.left = event.clientX + 16 + "px";
     floatingCard.style.top = event.clientY - 10 + "px";
     floatingCard.classList.add("visible");

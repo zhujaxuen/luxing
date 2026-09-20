@@ -136,6 +136,37 @@ header p {
   gap: 10px;
 }
 
+.lang-switcher {
+  display: flex;
+  border: 1px solid rgba(201, 162, 75, 0.45);
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(18, 24, 43, 0.7);
+}
+
+.lang-switcher button {
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  font: 600 12px "Manrope", sans-serif;
+  padding: 9px 11px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.lang-switcher button + button {
+  border-left: 1px solid rgba(201, 162, 75, 0.25);
+}
+
+.lang-switcher button:hover {
+  color: var(--text);
+}
+
+.lang-switcher button.active {
+  background: rgba(201, 162, 75, 0.22);
+  color: var(--gold);
+}
+
 .rotation-toggle {
   border: 1px solid rgba(201, 162, 75, 0.45);
   border-radius: 8px;
@@ -484,11 +515,13 @@ header p {
     top: max(14px, env(safe-area-inset-top));
     right: 14px;
     flex-direction: row;
-    align-items: flex-start;
+    align-items: flex-end;
+    justify-content: flex-end;
     gap: 6px;
     flex-shrink: 0;
     width: max-content;
-    flex-wrap: nowrap;
+    max-width: calc(100vw - 28px);
+    flex-wrap: wrap;
   }
 
   .rotation-toggle {
@@ -499,6 +532,11 @@ header p {
   .overview-toggle {
     padding: 7px 9px;
     font-size: 11px;
+  }
+
+  .lang-switcher button {
+    padding: 7px 8px;
+    font-size: 10.5px;
   }
 
   .globe-label {
