@@ -362,6 +362,7 @@ const TRAIN_DURATION_SECONDS = 9;
 const ROUTES_WITHOUT_ICON = new Set(["nanjing:yangzhou"]);
 // Trechos que "voam" mais rápido na animação (5s em vez dos 14s padrão).
 const FAST_FLIGHT_ROUTE_KEYS = new Set([
+  "curitiba:sao-paulo",
   "sao-paulo:istambul",
   "istambul:guangzhou",
   "guangzhou-local:beijing",
@@ -386,6 +387,12 @@ function createFallbackPlaneCanvas() {
   context.strokeStyle = "#05070d";
   context.lineWidth = 2;
   context.lineJoin = "round";
+  // Desenha em metade do tamanho, centralizado, pra ter a mesma margem ao
+  // redor que o glifo do trem tem (ver createRouteIcon para "trem").
+  context.save();
+  context.translate(32, 32);
+  context.scale(0.5, 0.5);
+  context.translate(-32, -32);
   context.beginPath();
   context.moveTo(58, 32);
   context.lineTo(14, 8);
@@ -398,6 +405,7 @@ function createFallbackPlaneCanvas() {
   context.closePath();
   context.fill();
   context.stroke();
+  context.restore();
   return canvas;
 }
 
@@ -453,8 +461,24 @@ function createRouteIcon(type) {
     const emojiImage = new Image();
     emojiImage.crossOrigin = "anonymous";
     emojiImage.onload = () => {
-      const emojiTexture = new THREE.Texture(emojiImage);
-      emojiTexture.needsUpdate = true;
+      // Desenha o emoji num canvas com a MESMA margem ao redor que o glifo
+      // do trem tem (ver createRouteIcon para "trem"), porque a imagem do
+      // Twemoji preenche quase todo o quadro sozinha — sem essa margem o
+      // avião parece bem maior que o trem mesmo com a mesma malha 3D.
+      const paddedCanvas = document.createElement("canvas");
+      paddedCanvas.width = 64;
+      paddedCanvas.height = 64;
+      const paddedContext = paddedCanvas.getContext("2d");
+      const glyphSize = 26;
+      paddedContext.drawImage(
+        emojiImage,
+        (64 - glyphSize) / 2,
+        (64 - glyphSize) / 2,
+        glyphSize,
+        glyphSize
+      );
+
+      const emojiTexture = new THREE.CanvasTexture(paddedCanvas);
       emojiTexture.colorSpace = THREE.SRGBColorSpace;
       icon.material.map = emojiTexture;
       icon.material.needsUpdate = true;
@@ -858,7 +882,22 @@ function selectStop(id, flyTo) {
       const isOutbound = route.from === id;
       route.line.visible = isOutbound;
       route.line.material.opacity = 0.9;
-      if (route.icon) route.icon.visible = isOutbound;
+      if (route.icon) {
+        route.icon.visible = isOutbound;
+        if (isOutbound) {
+          // Reinicia a animação do zero (progresso 0 = na cidade de
+          // origem) toda vez que o ícone é exibido por causa de um
+          // clique. Sem isso, o progresso era calculado a partir do
+          // tempo total desde que a página abriu, então às vezes o
+          // ícone já aparecia no meio do caminho ou quase chegando.
+          route.animationStartedAt = clock.getElapsedTime();
+          if (route.type === "voo") {
+            positionFlightIcon(route.icon, route.curve, 0);
+          } else {
+            route.icon.position.copy(route.curve.getPointAt(0));
+          }
+        }
+      }
     });
   }
 
@@ -991,7 +1030,11 @@ function animate() {
     if (elapsed >= activeCameraFollow.endsAt) {
       const { restorePosition, restoreTarget, route } = activeCameraFollow;
       activeCameraFollow = null;
-      selectStop(route.to, false);
+      // Só atualiza qual parada fica destacada na timeline — não chama
+      // selectStop() completo, porque isso deixaria visível (e animando)
+      // o ícone da PRÓXIMA rota sozinho, sem o usuário ter clicado nela.
+      activeStopId = route.to;
+      updateTimelineState();
       animateCamera(restorePosition, restoreTarget);
     } else {
       const { icon } = activeCameraFollow.route;
