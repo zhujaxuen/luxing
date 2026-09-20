@@ -373,6 +373,7 @@ const ROUTE_DURATION_OVERRIDES = {
   "shanghai:guangzhou-retorno": 4,
   "guangzhou-retorno:istambul-retorno": 5,
   "istambul-retorno:saopaulo-retorno": 5,
+  "saopaulo-retorno:curitiba-retorno": 5,
 };
 
 // Trechos em que a câmera acompanha o ícone de perto durante a animação,
@@ -387,6 +388,24 @@ const CAMERA_FOLLOW_ROUTE_KEYS = new Set([
   "guangzhou-retorno:istambul-retorno",
   "istambul-retorno:saopaulo-retorno",
 ]);
+
+// A que distância do centro do globo a câmera fica enquanto acompanha o
+// ícone. Nos trechos longos (intercontinentais) ela se afasta mais pra dar
+// uma visão do trajeto todo; nos trechos curtos dentro da China isso não é
+// necessário — ela fica perto o tempo todo, sem dar esse "zoom pra fora e
+// de volta".
+const DEFAULT_FOLLOW_DISTANCE = 6.6;
+const FOLLOW_DISTANCE_OVERRIDES = {
+  "guangzhou-local:beijing": 4,
+  "beijing:nanjing": 4,
+  "yangzhou:shanghai": 4,
+  "shanghai:guangzhou-retorno": 4,
+};
+
+function getFollowDistance(route) {
+  const routeKey = `${route.from}:${route.to}`;
+  return FOLLOW_DISTANCE_OVERRIDES[routeKey] ?? DEFAULT_FOLLOW_DISTANCE;
+}
 
 let activeCameraFollow = null;
 const routeIconWorldPosition = new THREE.Vector3();
@@ -1017,13 +1036,18 @@ window.addEventListener("click", onClick);
 // ============================================================
 
 const clock = new THREE.Clock();
+let previousElapsed = 0;
+// Duração de uma volta completa (360°) do giro automático.
+const FULL_ROTATION_SECONDS = 25;
 
 function animate() {
   requestAnimationFrame(animate);
   const elapsed = clock.getElapsedTime();
+  const delta = elapsed - previousElapsed;
+  previousElapsed = elapsed;
 
   if (isAutoRotating) {
-    globeGroup.rotation.y -= 0.0009;
+    globeGroup.rotation.y -= ((2 * Math.PI) / FULL_ROTATION_SECONDS) * delta;
   }
 
   markerObjects.forEach((m, i) => {
@@ -1061,7 +1085,8 @@ function animate() {
     } else {
       const { icon } = activeCameraFollow.route;
       icon.getWorldPosition(routeIconWorldPosition);
-      const cameraTarget = routeIconWorldPosition.clone().normalize().multiplyScalar(6.6);
+      const followDistance = getFollowDistance(activeCameraFollow.route);
+      const cameraTarget = routeIconWorldPosition.clone().normalize().multiplyScalar(followDistance);
       // A velocidade com que a câmera "persegue" o ícone é proporcional à
       // duração do trecho: em voos rápidos (poucos segundos), ela precisa
       // reagir mais rápido pra não ficar pra trás. 0.55/10s = 0.055, que é
