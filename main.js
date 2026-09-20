@@ -18,8 +18,21 @@ const GLOBE_RADIUS = 2;
 // português caso falte alguma chave.
 
 const SUPPORTED_LANGS = ["pt", "en", "zh"];
-let currentLang = localStorage.getItem("luxing-lang") || "pt";
+const urlLang = new URLSearchParams(window.location.search).get("lang");
+let currentLang = SUPPORTED_LANGS.includes(urlLang)
+  ? urlLang
+  : localStorage.getItem("luxing-lang") || "pt";
 if (!SUPPORTED_LANGS.includes(currentLang)) currentLang = "pt";
+localStorage.setItem("luxing-lang", currentLang);
+
+// Mantém a URL sempre explícita sobre o idioma atual (?lang=pt/en/zh),
+// assim dá pra compartilhar o link já no idioma certo.
+function syncUrlLang(lang) {
+  const url = new URL(window.location.href);
+  url.searchParams.set("lang", lang);
+  window.history.replaceState(null, "", url);
+}
+syncUrlLang(currentLang);
 
 function t(stopId, field, fallback) {
   if (currentLang === "pt") return fallback;
@@ -344,13 +357,49 @@ function updateMarkerScale() {
 
 const routeObjects = []; // { line, icon, type }
 const FLIGHT_DURATION_SECONDS = 14;
-const LONG_FLIGHT_DURATION_SECONDS = 10;
+const FAST_FLIGHT_DURATION_SECONDS = 5;
 const TRAIN_DURATION_SECONDS = 9;
 const ROUTES_WITHOUT_ICON = new Set(["nanjing:yangzhou"]);
+// Trechos que "voam" mais rápido na animação (5s em vez dos 14s padrão).
+const FAST_FLIGHT_ROUTE_KEYS = new Set([
+  "sao-paulo:istambul",
+  "istambul:guangzhou",
+  "guangzhou-local:beijing",
+  "shanghai:guangzhou-retorno",
+]);
+// Trechos em que a câmera acompanha o avião de perto durante a animação.
 const CAMERA_FOLLOW_ROUTE_KEYS = new Set(["sao-paulo:istambul", "istambul:guangzhou"]);
 
 let activeCameraFollow = null;
 const routeIconWorldPosition = new THREE.Vector3();
+
+// Desenho vetorial simples, usado só como reserva enquanto a imagem do
+// emoji ✈️ carrega (ou caso ela falhe ao carregar). O "nariz" fica sempre
+// em x=58, apontando para o eixo local +X — mesma convenção usada pela
+// imagem do emoji depois de carregada.
+function createFallbackPlaneCanvas() {
+  const canvas = document.createElement("canvas");
+  canvas.width = 64;
+  canvas.height = 64;
+  const context = canvas.getContext("2d");
+  context.fillStyle = "#f2efe6";
+  context.strokeStyle = "#05070d";
+  context.lineWidth = 2;
+  context.lineJoin = "round";
+  context.beginPath();
+  context.moveTo(58, 32);
+  context.lineTo(14, 8);
+  context.lineTo(34, 28);
+  context.lineTo(10, 20);
+  context.lineTo(18, 32);
+  context.lineTo(10, 44);
+  context.lineTo(34, 36);
+  context.lineTo(14, 56);
+  context.closePath();
+  context.fill();
+  context.stroke();
+  return canvas;
+}
 
 function createRouteIcon(type) {
   if (type === "trem") {
@@ -380,41 +429,19 @@ function createRouteIcon(type) {
   }
 
   if (type === "voo") {
-    // Desenhado como vetor (e não como o glifo de fonte "✈") de propósito:
-    // fontes de emoji diferentes (Windows "Segoe UI Symbol" vs. as fontes
-    // nativas de iOS/Android) desenham a "frente" do avião em ângulos
-    // diferentes. Isso fazia a rotação calculada em positionFlightIcon()
-    // ficar correta só no Windows/desktop e errada no celular. Um desenho
-    // vetorial (silhueta de avião) tem o "nariz" sempre no mesmo lugar
-    // (canvas x=58, apontando para o eixo local +X), então a rotação fica
-    // certa em qualquer aparelho.
-    const canvas = document.createElement("canvas");
-    canvas.width = 64;
-    canvas.height = 64;
-    const context = canvas.getContext("2d");
-    context.fillStyle = "#f2efe6";
-    context.strokeStyle = "#05070d";
-    context.lineWidth = 2;
-    context.lineJoin = "round";
-    context.beginPath();
-    context.moveTo(58, 32); // nariz — aponta para o eixo local +X (sentido do voo)
-    context.lineTo(14, 8); // ponta da asa principal (de cima)
-    context.lineTo(34, 28); // raiz da asa / topo da fuselagem
-    context.lineTo(10, 20); // ponta da asa traseira (de cima)
-    context.lineTo(18, 32); // reentrância central (cauda)
-    context.lineTo(10, 44); // ponta da asa traseira (de baixo)
-    context.lineTo(34, 36); // raiz da asa / base da fuselagem
-    context.lineTo(14, 56); // ponta da asa principal (de baixo)
-    context.closePath();
-    context.fill();
-    context.stroke();
-
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.colorSpace = THREE.SRGBColorSpace;
+    // O ícone é a imagem do emoji ✈️ de verdade (Twemoji), não o glifo de
+    // fonte do sistema. Antes usávamos o glifo desenhado pela fonte
+    // "Segoe UI Symbol" — só que fontes de emoji diferentes (Windows vs.
+    // as fontes nativas de iOS/Android) desenham a "frente" do avião em
+    // ângulos diferentes, o que fazia a rotação calculada em
+    // positionFlightIcon() ficar correta só no desktop e errada no
+    // celular. Usando sempre a MESMA imagem (baixada de um CDN, não a
+    // fonte do aparelho), o desenho — e portanto o ângulo do "nariz" — é
+    // sempre idêntico em qualquer dispositivo.
     const icon = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.09, 0.09),
+      new THREE.PlaneGeometry(0.11, 0.11),
       new THREE.MeshBasicMaterial({
-        map: texture,
+        map: new THREE.CanvasTexture(createFallbackPlaneCanvas()),
         transparent: true,
         side: THREE.DoubleSide,
         depthTest: true,
@@ -422,11 +449,33 @@ function createRouteIcon(type) {
       })
     );
     icon.visible = false;
+
+    const emojiImage = new Image();
+    emojiImage.crossOrigin = "anonymous";
+    emojiImage.onload = () => {
+      const emojiTexture = new THREE.Texture(emojiImage);
+      emojiTexture.needsUpdate = true;
+      emojiTexture.colorSpace = THREE.SRGBColorSpace;
+      icon.material.map = emojiTexture;
+      icon.material.needsUpdate = true;
+    };
+    // Se a imagem não carregar por algum motivo (ex.: sem internet), o
+    // desenho vetorial de reserva definido acima continua no lugar.
+    emojiImage.src =
+      "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/2708.png";
+
     return icon;
   }
 
+
   return null;
 }
+
+// O emoji ✈️ do Twemoji é desenhado apontando na diagonal (não
+// perfeitamente para a direita), então aplicamos essa correção de ângulo
+// por cima da rotação principal. Se o avião parecer girado um pouco a
+// mais ou a menos que o esperado, ajuste esse valor (em graus).
+const VOO_ICON_ANGLE_OFFSET = THREE.MathUtils.degToRad(-38);
 
 function positionFlightIcon(icon, curve, progress) {
   icon.position.copy(curve.getPointAt(progress));
@@ -438,6 +487,7 @@ function positionFlightIcon(icon, curve, progress) {
   icon.quaternion.setFromRotationMatrix(
     new THREE.Matrix4().makeBasis(direction, fixedUp, normal)
   );
+  icon.rotateOnAxis(new THREE.Vector3(0, 0, 1), VOO_ICON_ANGLE_OFFSET);
 }
 
 function getRouteProgress(route, duration, elapsed) {
@@ -449,8 +499,8 @@ function getRouteProgress(route, duration, elapsed) {
 
 function getFlightDuration(route) {
   const routeKey = `${route.from}:${route.to}`;
-  return CAMERA_FOLLOW_ROUTE_KEYS.has(routeKey)
-    ? LONG_FLIGHT_DURATION_SECONDS
+  return FAST_FLIGHT_ROUTE_KEYS.has(routeKey)
+    ? FAST_FLIGHT_DURATION_SECONDS
     : FLIGHT_DURATION_SECONDS;
 }
 
@@ -773,17 +823,14 @@ function applyLanguage(lang) {
   buildTimeline();
   rebuildMarkerLabels();
 
-  document.querySelectorAll(".lang-switcher button").forEach((btn) => {
-    btn.classList.toggle("active", btn.dataset.lang === lang);
-  });
+  syncUrlLang(lang);
+  if (langSelect) langSelect.value = lang;
 }
 
-const langSwitcher = document.getElementById("lang-switcher");
-if (langSwitcher) {
-  langSwitcher.querySelectorAll("button").forEach((btn) => {
-    btn.classList.toggle("active", btn.dataset.lang === currentLang);
-    btn.addEventListener("click", () => applyLanguage(btn.dataset.lang));
-  });
+const langSelect = document.getElementById("lang-select");
+if (langSelect) {
+  langSelect.value = currentLang;
+  langSelect.addEventListener("change", () => applyLanguage(langSelect.value));
 }
 
 function selectStop(id, flyTo) {
