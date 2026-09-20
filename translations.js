@@ -90,7 +90,7 @@ const TRANSLATIONS = {
       nanjing: {
         name: "Nanjing",
         date: "Oct 21–24",
-        tag: "Nanjing Massacre Memorial",
+        tag: "Ming City Wall",
         description: "Train from Beijing on 10/21. Staying until 10/24.",
       },
       yangzhou: {
@@ -215,7 +215,7 @@ const TRANSLATIONS = {
       nanjing: {
         name: "南京",
         date: "10月21-24日",
-        tag: "侵华日军南京大屠杀遇难同胞纪念馆",
+        tag: "明城墙",
         description: "10月21日从北京乘火车出发,停留至10月24日。",
       },
       yangzhou: {

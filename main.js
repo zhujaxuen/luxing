@@ -963,13 +963,21 @@ function selectStop(id, flyTo) {
   }
 }
 
+let cameraAnimationId = 0;
+
 function animateCamera(targetPos, targetLookAt = controls.target.clone()) {
+  // Se já existir uma animação de câmera em andamento (ex.: o usuário
+  // clicou rápido em outra cidade), ela é cancelada aqui — sem isso, as
+  // duas ficavam rodando ao mesmo tempo e "brigando" pela posição da
+  // câmera, deixando ela numa posição estranha e imprevisível.
+  const animationId = ++cameraAnimationId;
   const startPos = camera.position.clone();
   const startTarget = controls.target.clone();
   const startTime = performance.now();
   const duration = 900;
 
   function step(now) {
+    if (animationId !== cameraAnimationId) return; // uma animação mais nova assumiu
     const t = Math.min((now - startTime) / duration, 1);
     const eased = 1 - Math.pow(1 - t, 3);
     camera.position.lerpVectors(startPos, targetPos, eased);
