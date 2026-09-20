@@ -356,20 +356,36 @@ function updateMarkerScale() {
 // ============================================================
 
 const routeObjects = []; // { line, icon, type }
-const FLIGHT_DURATION_SECONDS = 14;
-const FAST_FLIGHT_DURATION_SECONDS = 5;
-const TRAIN_DURATION_SECONDS = 9;
+const FLIGHT_DURATION_SECONDS = 14; // padrão pra voos não listados abaixo
+const TRAIN_DURATION_SECONDS = 9; // padrão pra trens não listados abaixo
 const ROUTES_WITHOUT_ICON = new Set(["nanjing:yangzhou"]);
-// Trechos que "voam" mais rápido na animação (5s em vez dos 14s padrão).
-const FAST_FLIGHT_ROUTE_KEYS = new Set([
-  "curitiba:sao-paulo",
+
+// Duração (em segundos) da animação de cada trecho específico. Quem não
+// está listado aqui usa o padrão do tipo (FLIGHT_DURATION_SECONDS ou
+// TRAIN_DURATION_SECONDS, lá em cima).
+const ROUTE_DURATION_OVERRIDES = {
+  "curitiba:sao-paulo": 5,
+  "sao-paulo:istambul": 5,
+  "istambul:guangzhou": 5,
+  "guangzhou-local:beijing": 5,
+  "beijing:nanjing": 8,
+  "yangzhou:shanghai": 8,
+  "shanghai:guangzhou-retorno": 4,
+  "guangzhou-retorno:istambul-retorno": 5,
+  "istambul-retorno:saopaulo-retorno": 5,
+};
+
+// Trechos em que a câmera acompanha o ícone de perto durante a animação,
+// terminando enquadrando a cidade de chegada.
+const CAMERA_FOLLOW_ROUTE_KEYS = new Set([
   "sao-paulo:istambul",
   "istambul:guangzhou",
-  "guangzhou-local:beijing",
+  "beijing:nanjing",
+  "yangzhou:shanghai",
   "shanghai:guangzhou-retorno",
+  "guangzhou-retorno:istambul-retorno",
+  "istambul-retorno:saopaulo-retorno",
 ]);
-// Trechos em que a câmera acompanha o avião de perto durante a animação.
-const CAMERA_FOLLOW_ROUTE_KEYS = new Set(["sao-paulo:istambul", "istambul:guangzhou"]);
 
 let activeCameraFollow = null;
 const routeIconWorldPosition = new THREE.Vector3();
@@ -521,11 +537,12 @@ function getRouteProgress(route, duration, elapsed) {
   return ((elapsed - startTime) / duration + offset) % 1;
 }
 
-function getFlightDuration(route) {
+function getRouteDuration(route) {
   const routeKey = `${route.from}:${route.to}`;
-  return FAST_FLIGHT_ROUTE_KEYS.has(routeKey)
-    ? FAST_FLIGHT_DURATION_SECONDS
-    : FLIGHT_DURATION_SECONDS;
+  if (ROUTE_DURATION_OVERRIDES[routeKey] !== undefined) {
+    return ROUTE_DURATION_OVERRIDES[routeKey];
+  }
+  return route.type === "trem" ? TRAIN_DURATION_SECONDS : FLIGHT_DURATION_SECONDS;
 }
 
 function startCameraFollow(route) {
@@ -548,7 +565,7 @@ function startCameraFollow(route) {
 
   activeCameraFollow = {
     route,
-    endsAt: now + getFlightDuration(route),
+    endsAt: now + getRouteDuration(route),
     restorePosition: arrivalPosition,
     restoreTarget: arrivalTarget,
   };
@@ -1017,11 +1034,11 @@ function animate() {
   routeObjects.forEach((route) => {
     if (!route.icon || !route.icon.visible) return;
     if (route.type === "voo") {
-      const progress = getRouteProgress(route, getFlightDuration(route), elapsed);
+      const progress = getRouteProgress(route, getRouteDuration(route), elapsed);
       positionFlightIcon(route.icon, route.curve, progress);
     }
     if (route.type === "trem") {
-      const progress = getRouteProgress(route, TRAIN_DURATION_SECONDS, elapsed);
+      const progress = getRouteProgress(route, getRouteDuration(route), elapsed);
       route.icon.position.copy(route.curve.getPointAt(progress));
     }
   });
