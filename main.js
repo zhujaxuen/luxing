@@ -439,7 +439,7 @@ function createRouteIcon(type) {
     // fonte do aparelho), o desenho — e portanto o ângulo do "nariz" — é
     // sempre idêntico em qualquer dispositivo.
     const icon = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.11, 0.11),
+      new THREE.PlaneGeometry(0.08, 0.08),
       new THREE.MeshBasicMaterial({
         map: new THREE.CanvasTexture(createFallbackPlaneCanvas()),
         transparent: true,
@@ -510,11 +510,23 @@ function startCameraFollow(route) {
   route.hasCameraFollowed = true;
   route.animationStartedAt = now;
   positionFlightIcon(route.icon, route.curve, 0);
+
+  // Ao final da animação, a câmera deve terminar enquadrando a cidade de
+  // DESTINO (não voltar pra onde estava antes do voo começar).
+  const destinationStop = TRIP.stops.find((s) => s.id === route.to);
+  const arrivalPosition = destinationStop
+    ? latLonToVector3(destinationStop.lat, destinationStop.lon, GLOBE_RADIUS)
+        .normalize()
+        .multiplyScalar(3.8)
+    : camera.position.clone();
+  const arrivalTarget =
+    window.innerWidth <= 720 ? globeGroup.position.clone() : controls.target.clone();
+
   activeCameraFollow = {
     route,
     endsAt: now + getFlightDuration(route),
-    restorePosition: camera.position.clone(),
-    restoreTarget: controls.target.clone(),
+    restorePosition: arrivalPosition,
+    restoreTarget: arrivalTarget,
   };
   return true;
 }
@@ -977,8 +989,9 @@ function animate() {
 
   if (activeCameraFollow) {
     if (elapsed >= activeCameraFollow.endsAt) {
-      const { restorePosition, restoreTarget } = activeCameraFollow;
+      const { restorePosition, restoreTarget, route } = activeCameraFollow;
       activeCameraFollow = null;
+      selectStop(route.to, false);
       animateCamera(restorePosition, restoreTarget);
     } else {
       const { icon } = activeCameraFollow.route;
