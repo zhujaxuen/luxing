@@ -380,6 +380,7 @@ const ROUTE_DURATION_OVERRIDES = {
 const CAMERA_FOLLOW_ROUTE_KEYS = new Set([
   "sao-paulo:istambul",
   "istambul:guangzhou",
+  "guangzhou-local:beijing",
   "beijing:nanjing",
   "yangzhou:shanghai",
   "shanghai:guangzhou-retorno",
@@ -531,10 +532,10 @@ function positionFlightIcon(icon, curve, progress) {
 }
 
 function getRouteProgress(route, duration, elapsed) {
-  const startedAt = route.animationStartedAt;
-  const offset = startedAt === null ? route.iconOffset : 0;
-  const startTime = startedAt === null ? 0 : startedAt;
-  return ((elapsed - startTime) / duration + offset) % 1;
+  // Sem "% 1": queremos que a animação toque uma vez só e pare, não fique
+  // repetindo em loop depois que o ícone chega no destino.
+  const startedAt = route.animationStartedAt ?? 0;
+  return (elapsed - startedAt) / duration;
 }
 
 function getRouteDuration(route) {
@@ -575,7 +576,7 @@ function startCameraFollow(route) {
 function buildRoutes() {
   const stopsById = Object.fromEntries(TRIP.stops.map((s) => [s.id, s]));
 
-  TRIP.routes.forEach((route, index) => {
+  TRIP.routes.forEach((route) => {
     const from = stopsById[route.from];
     const to = stopsById[route.to];
     if (!from || !to) return;
@@ -619,7 +620,6 @@ function buildRoutes() {
       from: route.from,
       to: route.to,
       curve,
-      iconOffset: index / TRIP.routes.length,
       animationStartedAt: null,
       hasCameraFollowed: false,
     });
@@ -1033,12 +1033,17 @@ function animate() {
 
   routeObjects.forEach((route) => {
     if (!route.icon || !route.icon.visible) return;
+    const progress = getRouteProgress(route, getRouteDuration(route), elapsed);
+    if (progress >= 1) {
+      // Chegou no destino: para por aqui, não fica viajando de novo em
+      // loop. Um novo clique na cidade de origem reinicia a animação.
+      route.icon.visible = false;
+      return;
+    }
     if (route.type === "voo") {
-      const progress = getRouteProgress(route, getRouteDuration(route), elapsed);
       positionFlightIcon(route.icon, route.curve, progress);
     }
     if (route.type === "trem") {
-      const progress = getRouteProgress(route, getRouteDuration(route), elapsed);
       route.icon.position.copy(route.curve.getPointAt(progress));
     }
   });
@@ -1057,8 +1062,14 @@ function animate() {
       const { icon } = activeCameraFollow.route;
       icon.getWorldPosition(routeIconWorldPosition);
       const cameraTarget = routeIconWorldPosition.clone().normalize().multiplyScalar(6.6);
-      camera.position.lerp(cameraTarget, 0.055);
-      controls.target.lerp(routeIconWorldPosition, 0.1);
+      // A velocidade com que a câmera "persegue" o ícone é proporcional à
+      // duração do trecho: em voos rápidos (poucos segundos), ela precisa
+      // reagir mais rápido pra não ficar pra trás. 0.55/10s = 0.055, que é
+      // o valor original calibrado pros trechos mais longos.
+      const followDuration = getRouteDuration(activeCameraFollow.route);
+      const followSpeed = THREE.MathUtils.clamp(0.55 / followDuration, 0.05, 0.35);
+      camera.position.lerp(cameraTarget, followSpeed);
+      controls.target.lerp(routeIconWorldPosition, Math.min(followSpeed * 1.8, 0.5));
     }
   }
 
