@@ -349,6 +349,12 @@ function updateMarkerScale() {
       marker.label.scale.copy(marker.label.userData.baseScale).multiplyScalar(labelScale);
     }
   });
+
+  // Quanto mais perto o zoom (ex.: olhando de perto pras cidades da
+  // China), menos sensível o arrasto fica — um gesto pequeno de dedo/mouse
+  // já gira bastante quando a câmera está perto, então reduzimos a
+  // velocidade de rotação nesse caso.
+  controls.rotateSpeed = THREE.MathUtils.lerp(0.18, 0.45, zoomProgress);
 }
 
 // ============================================================
@@ -1038,7 +1044,7 @@ window.addEventListener("click", onClick);
 const clock = new THREE.Clock();
 let previousElapsed = 0;
 // Duração de uma volta completa (360°) do giro automático.
-const FULL_ROTATION_SECONDS = 25;
+const FULL_ROTATION_SECONDS = 22;
 
 function animate() {
   requestAnimationFrame(animate);
