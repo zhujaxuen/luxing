@@ -572,9 +572,8 @@ function getRouteDuration(route) {
 }
 
 function startCameraFollow(route) {
-  if (route.hasCameraFollowed || !route.icon) return false;
+  if (!route.icon) return false;
   const now = clock.getElapsedTime();
-  route.hasCameraFollowed = true;
   route.animationStartedAt = now;
   positionFlightIcon(route.icon, route.curve, 0);
 
@@ -646,7 +645,6 @@ function buildRoutes() {
       to: route.to,
       curve,
       animationStartedAt: null,
-      hasCameraFollowed: false,
     });
   });
 }
