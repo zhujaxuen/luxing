@@ -165,6 +165,15 @@ rotationToggle.addEventListener("click", () => {
     : tUI("startRotation", "Iniciar giro");
 });
 
+// Clicar numa cidade sempre deve sobrepor o giro automático (se estiver
+// ativo, para).
+function stopAutoRotation() {
+  if (!isAutoRotating) return;
+  isAutoRotating = false;
+  rotationToggle.setAttribute("aria-pressed", "false");
+  rotationToggle.textContent = tUI("startRotation", "Iniciar giro");
+}
+
 overviewToggle.addEventListener("click", () => {
   activeCameraFollow = null;
   animateCamera(overviewPosition, overviewTarget);
@@ -910,6 +919,7 @@ if (langSelect) {
 }
 
 function selectStop(id, flyTo) {
+  stopAutoRotation();
   activeStopId = id;
   activeCameraFollow = null;
   updateTimelineState();
