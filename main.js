@@ -181,7 +181,7 @@ overviewToggle.addEventListener("click", () => {
   activeStopId = null;
   updateTimelineState();
   routeObjects.forEach((route) => {
-    route.line.visible = true;
+    route.line.visible = !filteredOutTypes.has(route.type);
     route.line.material.opacity = 0.85;
     if (route.icon) route.icon.visible = false;
   });
@@ -594,8 +594,10 @@ function startCameraFollow(route) {
         .normalize()
         .multiplyScalar(3.8)
     : camera.position.clone();
-  const arrivalTarget =
-    window.innerWidth <= 720 ? globeGroup.position.clone() : controls.target.clone();
+  // A câmera deve sempre olhar pro centro do globo, não continuar
+  // "olhando" pra onde quer que o alvo estivesse antes (isso deixava a
+  // câmera apontada pro lugar errado depois de um trajeto acompanhado).
+  const arrivalTarget = globeGroup.position.clone();
 
   activeCameraFollow = {
     route,
@@ -677,13 +679,12 @@ function buildLegend() {
 
     btn.addEventListener("click", () => {
       btn.classList.toggle("off");
-      const visible = !btn.classList.contains("off");
-      routeObjects
-        .filter((r) => r.type === type)
-        .forEach((r) => {
-          r.line.visible = visible;
-          if (r.icon) r.icon.visible = visible;
-        });
+      if (btn.classList.contains("off")) {
+        filteredOutTypes.add(type);
+      } else {
+        filteredOutTypes.delete(type);
+      }
+      applyRouteVisibility();
     });
 
     legend.appendChild(btn);
@@ -797,6 +798,19 @@ function getNextLegInfo(stopId) {
 // ============================================================
 
 let activeStopId = null;
+// Tipos de trajeto desligados no filtro da legenda (ex.: usuário clicou
+// pra esconder "Avião"). É só um FILTRO por cima do que já estaria visível
+// — nunca deve trazer de volta uma rota que não é a ativa no momento.
+const filteredOutTypes = new Set();
+
+function applyRouteVisibility() {
+  routeObjects.forEach((route) => {
+    const isOutbound = route.from === activeStopId;
+    const isAllowedByFilter = !filteredOutTypes.has(route.type);
+    route.line.visible = isOutbound && isAllowedByFilter;
+    if (route.icon) route.icon.visible = isOutbound && isAllowedByFilter;
+  });
+}
 
 function updateTimelineState() {
   const activeIndex = TRIP.stops.findIndex((stop) => stop.id === activeStopId);
@@ -885,24 +899,16 @@ function applyLanguage(lang) {
   const hintEl = document.getElementById("hint-text");
   if (hintEl) hintEl.textContent = tUI("hint", "arraste para girar · role para dar zoom");
 
-  // Preserva quais tipos de rota estavam filtrados (desligados) na legenda
-  // antes de reconstruí-la com os novos rótulos.
-  const previouslyOffTypes = [...document.querySelectorAll(".legend button.off")].map(
-    (btn) => btn.dataset.type
-  );
-
+  // Reconstrói a legenda com os novos rótulos, mantendo os filtros que já
+  // estavam ativos (o estado de verdade é o Set filteredOutTypes, não as
+  // classes do DOM — então só precisamos re-marcar visualmente os botões).
   buildLegend();
   document.querySelectorAll(".legend button").forEach((btn) => {
-    if (previouslyOffTypes.includes(btn.dataset.type)) {
+    if (filteredOutTypes.has(btn.dataset.type)) {
       btn.classList.add("off");
-      routeObjects
-        .filter((r) => r.type === btn.dataset.type)
-        .forEach((r) => {
-          r.line.visible = false;
-          if (r.icon) r.icon.visible = false;
-        });
     }
   });
+  applyRouteVisibility();
 
   buildStats();
   buildTimeline();
@@ -928,24 +934,21 @@ function selectStop(id, flyTo) {
   const marker = markerObjects.find((m) => m.stop.id === id);
 
   if (selectedStop) {
+    applyRouteVisibility();
     routeObjects.forEach((route) => {
       const isOutbound = route.from === id;
-      route.line.visible = isOutbound;
       route.line.material.opacity = 0.9;
-      if (route.icon) {
-        route.icon.visible = isOutbound;
-        if (isOutbound) {
-          // Reinicia a animação do zero (progresso 0 = na cidade de
-          // origem) toda vez que o ícone é exibido por causa de um
-          // clique. Sem isso, o progresso era calculado a partir do
-          // tempo total desde que a página abriu, então às vezes o
-          // ícone já aparecia no meio do caminho ou quase chegando.
-          route.animationStartedAt = clock.getElapsedTime();
-          if (route.type === "voo") {
-            positionFlightIcon(route.icon, route.curve, 0);
-          } else {
-            route.icon.position.copy(route.curve.getPointAt(0));
-          }
+      if (isOutbound && route.icon && route.icon.visible) {
+        // Reinicia a animação do zero (progresso 0 = na cidade de
+        // origem) toda vez que o ícone é exibido por causa de um
+        // clique. Sem isso, o progresso era calculado a partir do
+        // tempo total desde que a página abriu, então às vezes o
+        // ícone já aparecia no meio do caminho ou quase chegando.
+        route.animationStartedAt = clock.getElapsedTime();
+        if (route.type === "voo") {
+          positionFlightIcon(route.icon, route.curve, 0);
+        } else {
+          route.icon.position.copy(route.curve.getPointAt(0));
         }
       }
     });
@@ -966,8 +969,7 @@ function selectStop(id, flyTo) {
       ? marker.group.getWorldPosition(markerWorldPosition).clone()
       : latLonToVector3(selectedStop.lat, selectedStop.lon, GLOBE_RADIUS);
     const target = position.normalize().multiplyScalar(3.8);
-    const focusTarget =
-      window.innerWidth <= 720 ? globeGroup.position.clone() : controls.target.clone();
+    const focusTarget = globeGroup.position.clone();
     animateCamera(target, focusTarget);
     overviewToggle.hidden = false;
   }
