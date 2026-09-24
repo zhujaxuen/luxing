@@ -241,6 +241,24 @@ function latLonToVector3(lat, lon, radius) {
   );
 }
 
+// Posição de uma parada no MUNDO (já considerando o quanto o globo girou
+// até agora — seja por giro automático ou por arrasto do usuário).
+// latLonToVector3() sozinha só dá a posição "de fábrica", sem rotação;
+// usar ela direto pra mirar a câmera dava um alvo errado sempre que o
+// globo não estava mais na orientação inicial.
+function getStopWorldPosition(stop) {
+  const marker = markerObjects.find((m) => m.stop.id === stop.id);
+  if (marker) {
+    return marker.group.getWorldPosition(new THREE.Vector3());
+  }
+  // Paradas sem marcador próprio (ex.: repetições de uma cidade já
+  // visitada antes) não têm um objeto na cena pra perguntar a posição
+  // diretamente — aplicamos a rotação atual do globo manualmente.
+  return latLonToVector3(stop.lat, stop.lon, GLOBE_RADIUS).applyQuaternion(
+    globeGroup.quaternion
+  );
+}
+
 // ============================================================
 // Marcadores dos locais
 // ============================================================
@@ -590,9 +608,7 @@ function startCameraFollow(route) {
   // DESTINO (não voltar pra onde estava antes do voo começar).
   const destinationStop = TRIP.stops.find((s) => s.id === route.to);
   const arrivalPosition = destinationStop
-    ? latLonToVector3(destinationStop.lat, destinationStop.lon, GLOBE_RADIUS)
-        .normalize()
-        .multiplyScalar(3.8)
+    ? getStopWorldPosition(destinationStop).normalize().multiplyScalar(3.8)
     : camera.position.clone();
   // A câmera deve sempre olhar pro centro do globo, não continuar
   // "olhando" pra onde quer que o alvo estivesse antes (isso deixava a
@@ -931,7 +947,6 @@ function selectStop(id, flyTo) {
   updateTimelineState();
 
   const selectedStop = TRIP.stops.find((stop) => stop.id === id);
-  const marker = markerObjects.find((m) => m.stop.id === id);
 
   if (selectedStop) {
     applyRouteVisibility();
@@ -965,9 +980,7 @@ function selectStop(id, flyTo) {
     Boolean(selectedStop && flyTo && routeToFollow) && startCameraFollow(routeToFollow);
 
   if (selectedStop && flyTo && !isStartingCameraFollow) {
-    const position = marker
-      ? marker.group.getWorldPosition(markerWorldPosition).clone()
-      : latLonToVector3(selectedStop.lat, selectedStop.lon, GLOBE_RADIUS);
+    const position = getStopWorldPosition(selectedStop);
     const target = position.normalize().multiplyScalar(3.8);
     const focusTarget = globeGroup.position.clone();
     animateCamera(target, focusTarget);
@@ -1006,7 +1019,6 @@ function animateCamera(targetPos, targetLookAt = controls.target.clone()) {
 
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
-const markerWorldPosition = new THREE.Vector3();
 const floatingCard = document.getElementById("floating-card");
 const fcName = document.getElementById("fc-name");
 const fcDate = document.getElementById("fc-date");
