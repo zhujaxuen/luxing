@@ -197,6 +197,12 @@ header p {
   border-color: var(--gold);
 }
 
+.rotation-toggle.busy {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .legend button {
   display: flex;
   align-items: center;

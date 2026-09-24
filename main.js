@@ -158,6 +158,11 @@ if (initialHintEl) {
 }
 
 rotationToggle.addEventListener("click", () => {
+  // A cidade sempre prevalece: enquanto a câmera estiver acompanhando um
+  // trajeto, o botão de giro não faz nada (evita cancelar algo que o
+  // usuário pediu explicitamente pra ver).
+  if (activeCameraFollow) return;
+
   isAutoRotating = !isAutoRotating;
   rotationToggle.setAttribute("aria-pressed", String(isAutoRotating));
   rotationToggle.textContent = isAutoRotating
@@ -176,6 +181,7 @@ function stopAutoRotation() {
 
 overviewToggle.addEventListener("click", () => {
   activeCameraFollow = null;
+  rotationToggle.classList.remove("busy");
   animateCamera(overviewPosition, overviewTarget);
   overviewToggle.hidden = true;
   activeStopId = null;
@@ -601,6 +607,7 @@ function getRouteDuration(route) {
 function startCameraFollow(route) {
   if (!route.icon) return false;
   const now = clock.getElapsedTime();
+  rotationToggle.classList.add("busy");
   route.animationStartedAt = now;
   positionFlightIcon(route.icon, route.curve, 0);
 
@@ -944,6 +951,7 @@ function selectStop(id, flyTo) {
   stopAutoRotation();
   activeStopId = id;
   activeCameraFollow = null;
+  rotationToggle.classList.remove("busy");
   updateTimelineState();
 
   const selectedStop = TRIP.stops.find((stop) => stop.id === id);
@@ -1117,6 +1125,7 @@ function animate() {
       // o ícone da PRÓXIMA rota sozinho, sem o usuário ter clicado nela.
       activeStopId = route.to;
       updateTimelineState();
+      rotationToggle.classList.remove("busy");
       animateCamera(restorePosition, restoreTarget);
     } else {
       const { icon } = activeCameraFollow.route;
