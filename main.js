@@ -731,6 +731,43 @@ function haversineKm(a, b) {
   return 2 * earthRadiusKm * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
+// ============================================================
+// Fase da viagem: antes / durante / depois
+// ============================================================
+// Usa os campos dateStart/dateEnd de cada parada (data.js) — se uma
+// parada não tiver esses campos, ela é ignorada aqui (mas continua
+// aparecendo normalmente na timeline).
+
+function parseISODate(str) {
+  return new Date(`${str}T00:00:00`);
+}
+
+function getTripPhase() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const datedStops = TRIP.stops.filter((s) => s.dateStart && s.dateEnd);
+  if (datedStops.length === 0) return { phase: "before", currentStop: null };
+
+  const first = datedStops[0];
+  const last = datedStops[datedStops.length - 1];
+
+  if (today < parseISODate(first.dateStart)) {
+    return { phase: "before", currentStop: null };
+  }
+  if (today > parseISODate(last.dateEnd)) {
+    return { phase: "after", currentStop: null };
+  }
+
+  // A parada "atual" é a última cujo início já chegou — cobre bem os dias
+  // de conexão em que duas paradas têm datas que se encostam.
+  let currentStop = first;
+  datedStops.forEach((stop) => {
+    if (parseISODate(stop.dateStart) <= today) currentStop = stop;
+  });
+  return { phase: "during", currentStop };
+}
+
 function buildStats() {
   const stats = document.getElementById("stats");
   if (!stats) return;
@@ -742,25 +779,33 @@ function buildStats() {
     return from && to ? sum + haversineKm(from, to) : sum;
   }, 0);
 
-  let countdown = "";
-  if (TRIP.startDate) {
+  const { phase, currentStop } = getTripPhase();
+  const uiStrings = currentLang !== "pt" ? TRANSLATIONS[currentLang]?.ui : null;
+  let statusHTML = "";
+
+  if (phase === "before" && TRIP.startDate) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const departure = new Date(`${TRIP.startDate}T00:00:00`);
     const days = Math.round((departure - today) / 86400000);
-    const uiStrings = currentLang !== "pt" ? TRANSLATIONS[currentLang]?.ui : null;
 
     if (days > 1) {
-      countdown = uiStrings
+      statusHTML = uiStrings
         ? uiStrings.countdownDays(days)
         : `faltam <strong>${days}</strong> dias`;
     } else if (days === 1) {
-      countdown = uiStrings ? uiStrings.countdownOneDay : "falta <strong>1</strong> dia";
+      statusHTML = uiStrings ? uiStrings.countdownOneDay : "falta <strong>1</strong> dia";
     } else if (days === 0) {
-      countdown = uiStrings ? uiStrings.countdownToday : "a viagem começa <strong>hoje</strong> 🎉";
-    } else {
-      countdown = uiStrings ? uiStrings.countdownStarted : "a viagem já começou 🎉";
+      statusHTML = uiStrings ? uiStrings.countdownToday : "a viagem começa <strong>hoje</strong> 🎉";
     }
+  } else if (phase === "during" && currentStop) {
+    const cityName = t(currentStop.id, "name", currentStop.name);
+    statusHTML =
+      uiStrings && uiStrings.nowIn
+        ? uiStrings.nowIn(cityName)
+        : `📍 agora em <strong>${cityName}</strong>`;
+  } else if (phase === "after") {
+    statusHTML = uiStrings && uiStrings.tripConcluded ? uiStrings.tripConcluded : "viagem concluída 🎉";
   }
 
   const stopsLabel = currentLang === "pt" ? "paradas" : tUI("statsStops", "stops");
@@ -769,7 +814,7 @@ function buildStats() {
   stats.innerHTML = `
     <span><strong>${TRIP.stops.length}</strong> ${stopsLabel}</span>
     <span><strong>${Math.round(totalKm).toLocaleString("pt-BR")}</strong> ${kmLabel}</span>
-    ${countdown ? `<span>${countdown}</span>` : ""}
+    ${statusHTML ? `<span>${statusHTML}</span>` : ""}
   `;
 }
 buildStats();
@@ -1159,7 +1204,15 @@ window.addEventListener("resize", () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-// Seleciona a primeira parada por padrão
-if (TRIP.stops.length > 0) {
+// Se a viagem já começou (e ainda não terminou), abre direto na cidade
+// atual. Fora disso (antes ou depois da viagem), abre na primeira parada.
+const { phase: initialPhase, currentStop: initialCurrentStop } = getTripPhase();
+if (initialPhase === "during" && initialCurrentStop) {
+  selectStop(initialCurrentStop.id, false);
+  document.querySelector(`.stop[data-id="${initialCurrentStop.id}"]`)?.scrollIntoView({
+    behavior: "smooth",
+    block: "center",
+  });
+} else if (TRIP.stops.length > 0) {
   selectStop(TRIP.stops[0].id, false);
 }

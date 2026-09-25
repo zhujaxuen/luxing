@@ -4,6 +4,11 @@
 // Cada "route" é um trajeto entre dois stops (avião, trem ou ônibus).
 // As coordenadas (lat/lon) você encontra pesquisando "nome da cidade
 // latitude longitude" no Google.
+//
+// dateStart / dateEnd (formato AAAA-MM-DD): usados só internamente pelo
+// código pra saber em que fase a viagem está (antes / durante / depois) e,
+// durante a viagem, em qual cidade vocês estão agora. Não aparecem em
+// lugar nenhum da tela — quem aparece é o campo "date" (texto livre).
 // ============================================================
 
 const TRIP = {
@@ -22,6 +27,8 @@ const TRIP = {
       lat: -25.4284,
       lon: -49.2733,
       date: "09 out",
+      dateStart: "2026-10-09",
+      dateEnd: "2026-10-09",
       tag: "Partida",
       description:
         "Saída de Curitiba às 20h20 com destino a São Paulo.",
@@ -33,6 +40,8 @@ const TRIP = {
       lat: -23.5505,
       lon: -46.6333,
       date: "09–10 out",
+      dateStart: "2026-10-09",
+      dateEnd: "2026-10-10",
       tag: "Conexão",
       description:
         "Chegada de Curitiba e conexão para Istambul no dia 10/10.",
@@ -44,6 +53,8 @@ const TRIP = {
       lat: 41.0082,
       lon: 28.9784,
       date: "10–11 out",
+      dateStart: "2026-10-10",
+      dateEnd: "2026-10-11",
       tag: "Conexão",
       description:
         "Chegada no dia 10/10 e saída no dia 11/10 para Guangzhou.",
@@ -55,6 +66,8 @@ const TRIP = {
       lat: 23.1291,
       lon: 113.2644,
       date: "12 out",
+      dateStart: "2026-10-12",
+      dateEnd: "2026-10-12",
       tag: "Chegada",
       description:
         "Chegada na segunda-feira, 12/10. Ida a Shenzhen no mesmo dia.",
@@ -66,6 +79,8 @@ const TRIP = {
       lat: 22.5431,
       lon: 114.0579,
       date: "12–15 out",
+      dateStart: "2026-10-12",
+      dateEnd: "2026-10-15",
       tag: "Compras",
       labelOffset: [0.04, 0, 0.05],
       description:
@@ -78,6 +93,8 @@ const TRIP = {
       lat: 22.3193,
       lon: 114.1694,
       date: "14 out",
+      dateStart: "2026-10-14",
+      dateEnd: "2026-10-14",
       tag: "Kowloon Bay",
       labelOffset: [0, -0.04, 0.05],
       description:
@@ -90,6 +107,8 @@ const TRIP = {
       lat: 23.1291,
       lon: 113.2644,
       date: "15–17 out",
+      dateStart: "2026-10-15",
+      dateEnd: "2026-10-17",
       tag: "Canton Fair",
       showMarker: false,
       description:
@@ -102,6 +121,8 @@ const TRIP = {
       lat: 39.9042,
       lon: 116.4074,
       date: "17–21 out",
+      dateStart: "2026-10-17",
+      dateEnd: "2026-10-21",
       tag: "Muralha da China",
       description:
         "Voo de Guangzhou no dia 17/10. Estadia até 21/10.",
@@ -113,6 +134,8 @@ const TRIP = {
       lat: 32.0603,
       lon: 118.7969,
       date: "21–24 out",
+      dateStart: "2026-10-21",
+      dateEnd: "2026-10-24",
       tag: "Muralha Ming",
       labelOffset: [0, -0.025, 0.05],
       description:
@@ -125,6 +148,8 @@ const TRIP = {
       lat: 32.3936,
       lon: 119.4127,
       date: "24–27 out",
+      dateStart: "2026-10-24",
+      dateEnd: "2026-10-27",
       tag: "Família ❤️",
       description:
         "Estadia em Yangzhou de 24/10 a 27/10.",
@@ -136,6 +161,8 @@ const TRIP = {
       lat: 31.2304,
       lon: 121.4737,
       date: "27–30 out",
+      dateStart: "2026-10-27",
+      dateEnd: "2026-10-30",
       tag: "The Bund",
       description:
         "Chegada em 27/10. Estadia até 30/10, quando retorna de avião para Guangzhou.",
@@ -147,6 +174,8 @@ const TRIP = {
       lat: 23.1291,
       lon: 113.2644,
       date: "30 out",
+      dateStart: "2026-10-30",
+      dateEnd: "2026-10-30",
       tag: "Retorno",
       showMarker: false,
       description:
@@ -159,6 +188,8 @@ const TRIP = {
       lat: 41.0082,
       lon: 28.9784,
       date: "31 out",
+      dateStart: "2026-10-31",
+      dateEnd: "2026-10-31",
       tag: "Conexão",
       showMarker: false,
       description:
@@ -171,6 +202,8 @@ const TRIP = {
       lat: -23.5505,
       lon: -46.6333,
       date: "31 out",
+      dateStart: "2026-10-31",
+      dateEnd: "2026-10-31",
       tag: "Conexão",
       showLabel: false,
       description:
@@ -183,6 +216,8 @@ const TRIP = {
       lat: -25.4284,
       lon: -49.2733,
       date: "01 nov",
+      dateStart: "2026-11-01",
+      dateEnd: "2026-11-01",
       tag: "Retorno",
       showLabel: false,
       description:
