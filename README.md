@@ -1,8 +1,8 @@
 # 我的旅行 · Minha viagem à China
 
-De Curitiba à China, com uma escala em Istambul no meio do caminho — como se o mundo precisasse de um respiro entre um continente e outro antes de chegar lá.
+De Curitiba à China, com uma escala em Istambul no meio do caminho.
 
-Vinte e três dias, cinco cidades chinesas, duas voltas por Guangzhou e um reencontro em Yangzhou que é, no fim das contas, o motivo de tudo isso existir. Este repositório guarda o roteiro inteiro — e o site que nasceu pra contar essa história em forma de globo.
+Vinte e três dias, quinze paradas no total, sete cidades chinesas. Duas voltas por Guangzhou, passeios em Hong Kong, Shenzhen, Beijing e um reencontro com a família em Yangzhou que é o motivo de tudo isso existir. Este repositório guarda o roteiro inteiro e o site nasceu pra contar essa história.
 
 **[→ ver o site no ar](https://zhujaxuen.github.io/luxing/)**
 
@@ -25,11 +25,11 @@ Vinte e três dias, cinco cidades chinesas, duas voltas por Guangzhou e um reenc
 | 🚆 | Shanghai | 27–30 out | The Bund |
 | ✈️ | Guangzhou → Istambul → São Paulo → Curitiba | 30 out – 01 nov | Volta pra casa |
 
-Duas passagens por Guangzhou não são coincidência nem erro de planejamento — é o hub entre a parte "turista" da viagem (Shenzhen, Hong Kong) e a parte "roteiro principal" (Beijing pra cima). Todo o trajeto por dentro da China mistura avião, trem-bala e metrô; lá fora, é avião do início ao fim.
+Duas passagens por Guangzhou não são coincidência nem erro de planejamento, é o hub entre a parte "turista" da viagem (Shenzhen, Hong Kong) e a parte "roteiro principal" (Beijing pra cima). Todo o trajeto por dentro da China mistura avião, trem-bala e metrô; lá fora, é avião do início ao fim.
 
 ## Sobre o site
 
-Um globo 3D que gira de verdade, com textura de satélite da Terra — não é ilustração. Cada parada é um ponto no mapa; cada trajeto é um arco que a câmera acompanha quando você clica na cidade de origem, com um ícone (avião, trem ou metrô) percorrendo o caminho de verdade.
+Um globo 3D que gira de verdade, com textura de satélite da Terra, mas é uma ilustração, não um mapa real. Cada parada é um ponto no mapa; cada trajeto é um arco que a câmera acompanha quando você clica na cidade de origem, com um ícone (avião, trem ou metrô) percorrendo o caminho de verdade.
 
 Ele sabe também em que momento a viagem está: antes de outubro, mostra a contagem regressiva; durante, destaca automaticamente em qual cidade a gente está agora — marcador maior, cor diferente, pulso duplo; depois, vira um registro do que foi. Dá pra ler tudo em português, inglês ou mandarim, e o link já carrega no idioma escolhido.
 
