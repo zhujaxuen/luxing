@@ -1,105 +1,102 @@
-# Minha viagem à China - globo 3D interativo
+# 我的旅行 · Minha viagem à China
 
-我的旅行 (wǒ de lǚxíng)
-> **Acesse o site:** [zhujaxuen.github.io/luxing](https://zhujaxuen.github.io/luxing/)
+De Curitiba à China, com uma escala em Istambul no meio do caminho — como se o mundo precisasse de um respiro entre um continente e outro antes de chegar lá.
 
-Globo 3D interativo feito com Three.js para visualizar o roteiro da viagem,
-seus locais e os trajetos de avião e trem. O projeto e um site estatico: nao
-usa backend nem precisa de etapa de build.
+Vinte e três dias, cinco cidades chinesas, duas voltas por Guangzhou e um reencontro em Yangzhou que é, no fim das contas, o motivo de tudo isso existir. Este repositório guarda o roteiro inteiro — e o site que nasceu pra contar essa história em forma de globo.
 
-## Roteiro atual
+**[→ ver o site no ar](https://zhujaxuen.github.io/luxing/)**
 
-O percurso passa por Curitiba, Sao Paulo, Istambul, Guangzhou, Beijing,
-Nanjing, Yangzhou e Shanghai, com retorno ao Brasil por Istambul.
+---
 
-No mapa, e possivel:
+## O roteiro
 
-- clicar nos locais da linha do tempo para destacar cada parada;
-- arrastar o globo para girar manualmente e usar a roda do mouse para aproximar;
-- iniciar ou parar o giro automatico pelo botao no cabecalho;
-- filtrar as rotas por tipo de transporte.
+| | Cidade | Quando | O que rolou por lá |
+|---|---|---|---|
+| ✈️ | Curitiba | 09 out | Partida |
+| ✈️ | São Paulo | 09–10 out | Conexão |
+| ✈️ | Istambul | 10–11 out | Conexão |
+| 🛬 | Guangzhou | 12 out | Chegada à China |
+| 🚇 | Shenzhen | 12–15 out | Compras |
+| 🚇 | Hong Kong | 14 out | Kowloon Bay |
+| 🚇 | Guangzhou | 15–17 out | Canton Fair |
+| ✈️ | Beijing | 17–21 out | Muralha da China |
+| 🚆 | Nanjing | 21–24 out | Muralha Ming |
+| 🚆 | Yangzhou | 24–27 out | Família ❤️ |
+| 🚆 | Shanghai | 27–30 out | The Bund |
+| ✈️ | Guangzhou → Istambul → São Paulo → Curitiba | 30 out – 01 nov | Volta pra casa |
 
-## Como editar o roteiro
+Duas passagens por Guangzhou não são coincidência nem erro de planejamento — é o hub entre a parte "turista" da viagem (Shenzhen, Hong Kong) e a parte "roteiro principal" (Beijing pra cima). Todo o trajeto por dentro da China mistura avião, trem-bala e metrô; lá fora, é avião do início ao fim.
 
-Tudo fica em **`data.js`**. Você não precisa mexer em mais nada.
+## Sobre o site
 
-```js
-stops: [
-  {
-    id: "cidade",       // identificador unico, sem espacos
-    name: "Nome da cidade",
-    lat: 39.9042,        // latitude
-    lon: 116.4074,       // longitude
-    date: "12-16 out",
-    tag: "Parada",
-    description: "Descricao da parada",
-  },
-  // adicione quantos quiser
-],
+Um globo 3D que gira de verdade, com textura de satélite da Terra — não é ilustração. Cada parada é um ponto no mapa; cada trajeto é um arco que a câmera acompanha quando você clica na cidade de origem, com um ícone (avião, trem ou metrô) percorrendo o caminho de verdade.
 
-routes: [
-  { from: "cidade", to: "outra-cidade", type: "trem" },
-  // type: "voo" | "trem" | "onibus"
-],
+Ele sabe também em que momento a viagem está: antes de outubro, mostra a contagem regressiva; durante, destaca automaticamente em qual cidade a gente está agora — marcador maior, cor diferente, pulso duplo; depois, vira um registro do que foi. Dá pra ler tudo em português, inglês ou mandarim, e o link já carrega no idioma escolhido.
+
+Não tem build, não tem framework, não tem backend. Três arquivos e um navegador.
+
+---
+
+<details>
+<summary><strong>Detalhes técnicos</strong> (pra quem for mexer no código)</summary>
+
+### Stack
+
+Three.js puro, carregado via CDN. Sem Node, sem npm, sem etapa de build — é abrir o `index.html` (com um servidor local, ver abaixo) e pronto.
+
+### Estrutura
+
+```
+├── index.html            estrutura da página
+├── style.css             visual — cores, tipografia, painel lateral
+├── data.js               os dados da viagem: paradas e trajetos
+├── translations.js       textos em inglês e mandarim
+├── main.js               toda a lógica do globo
+├── favicon-selo.svg      ícone 中国 (vermelho-selo)
+├── favicon-noturno.svg   ícone 中国 (céu-noturno, alterna com o de cima)
+└── favicon.ico           reserva pra navegadores sem suporte a SVG favicon
 ```
 
-- Para **adicionar um novo local**: copie um bloco dentro de `stops` e troque
-  os valores.
-- Para **adicionar um trajeto**: adicione uma linha em `routes` com os `id` de
-  origem (`from`) e destino (`to`).
-- A ordem dos `stops` é a ordem que aparece na linha do tempo lateral.
+### Editar o roteiro
 
-## Rodar localmente
+Tudo em `data.js`. Cada parada:
 
-Como o site usa `import`/`export` (ES modules), nao e possivel abrir o
-`index.html` diretamente no navegador (`file://`). Use um servidor local:
+```js
+{
+  id: "cidade",              // identificador único, sem espaços
+  name: "Nome da cidade",
+  lat: 39.9042,
+  lon: 116.4074,
+  date: "12–16 out",         // texto livre, é só o que aparece na tela
+  dateStart: "2026-10-12",   // data real (ISO) — usada pro site saber
+  dateEnd: "2026-10-16",     //   em que cidade a viagem está agora
+  tag: "Alguma coisa curta",
+  description: "Descrição da parada.",
+}
+```
+
+E cada trajeto:
+
+```js
+{ from: "cidade", to: "outra-cidade", type: "trem" }
+// type: "voo" | "trem" | "metro" | "onibus"
+```
+
+Pra traduzir uma parada nova pro inglês/mandarim, adiciona ela também em
+`translations.js`, com o mesmo `id`.
+
+### Rodar localmente
+
+O site usa ES modules, então não abre direto como arquivo (`file://`) — precisa de um servidor local:
 
 ```bash
-# Python no Windows
-python -m http.server 8000
-
-# Python no macOS/Linux
 python3 -m http.server 8000
-
-# ou Node
+# ou
 npx serve .
 ```
 
-Depois, acesse <http://localhost:8000>.
+### Publicar
 
-## Publicar no GitHub Pages
+Settings → Pages → Deploy from a branch → `main` / `root`. Alguns minutos depois está no ar.
 
-1. No repositorio, abra **Settings -> Pages**.
-2. Em **Build and deployment**, escolha **Deploy from a branch**.
-3. Selecione a branch `main` e a pasta `/ (root)`. Clique em **Save**.
-4. Aguarde alguns minutos para a primeira publicacao.
-
-Neste projeto, o endereco publicado e:
-
-<https://zhujaxuen.github.io/luxing/>
-
-## Estrutura dos arquivos
-
-```
-├── index.html            → estrutura da página
-├── style.css              → visual (cores, tipografia, painel lateral)
-├── data.js                 → SEUS DADOS: locais e trajetos da viagem
-├── main.js                  → lógica do globo 3D (Three.js)
-├── favicon-selo.svg         → ícone 中国 vermelho-selo (padrão)
-├── favicon-noturno.svg      → ícone 中国 céu-noturno (alterna com o de cima)
-├── favicon.ico               → fallback para navegadores sem suporte a SVG favicon
-└── README.md                  → este arquivo
-```
-
-O ícone da aba do navegador alterna sozinho entre as duas versões a cada 6
-segundos (efeito puramente decorativo). Para deixar fixo em uma só, edite o
-bloco `<script>` no final do `index.html` e apague o `setInterval`, deixando
-só `link.href = "favicon-selo.svg";`.
-
-## Personalizações rápidas
-
-- **Cores das rotas**: em `data.js`, no objeto `ROUTE_STYLES`.
-- **Giro automatico**: em `main.js`, altere `isAutoRotating` para definir o
-  estado inicial ou mude `0.0009` para ajustar a velocidade.
-- **Textura da Terra**: em `main.js`, as texturas sao carregadas de URLs
-  publicas. Elas podem ser trocadas por imagens equiretangulares (2:1).
+</details>
