@@ -307,9 +307,17 @@ function createCityLabel(text) {
 }
 
 function buildMarkers() {
+  const { phase: markerPhase, currentStop: markerCurrentStop } = getTripPhase();
+
   TRIP.stops.forEach((stop) => {
     if (stop.showMarker === false) return;
     const pos = latLonToVector3(stop.lat, stop.lon, GLOBE_RADIUS);
+    const isCurrent =
+      markerPhase === "during" && markerCurrentStop && markerCurrentStop.id === stop.id;
+    // Cidade atual: maior, cor própria (jade) e com um segundo anel de
+    // pulso, pra se destacar das outras paradas (que ficam com a
+    // aparência normal, vermelho-selo).
+    const color = isCurrent ? 0x6fb3a8 : 0xc1432e;
 
     let label = null;
     const markerGroup = new THREE.Group();
@@ -317,14 +325,18 @@ function buildMarkers() {
     markerGroup.lookAt(pos.clone().multiplyScalar(2));
 
     const dot = new THREE.Mesh(
-      new THREE.SphereGeometry(0.028, 16, 16),
-      new THREE.MeshBasicMaterial({ color: 0xc1432e })
+      new THREE.SphereGeometry(isCurrent ? 0.042 : 0.028, 16, 16),
+      new THREE.MeshBasicMaterial({ color })
     );
     markerGroup.add(dot);
 
-    const ringGeo = new THREE.RingGeometry(0.038, 0.05, 32);
+    const ringGeo = new THREE.RingGeometry(
+      isCurrent ? 0.056 : 0.038,
+      isCurrent ? 0.07 : 0.05,
+      32
+    );
     const ringMat = new THREE.MeshBasicMaterial({
-      color: 0xc1432e,
+      color,
       side: THREE.DoubleSide,
       transparent: true,
       opacity: 0.55,
@@ -332,6 +344,20 @@ function buildMarkers() {
     const ring = new THREE.Mesh(ringGeo, ringMat);
     ring.position.z = 0.001;
     markerGroup.add(ring);
+
+    // Segundo anel, só na cidade atual — dá o efeito de "pulso duplo".
+    let outerRing = null;
+    if (isCurrent) {
+      const outerRingMat = new THREE.MeshBasicMaterial({
+        color,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.3,
+      });
+      outerRing = new THREE.Mesh(new THREE.RingGeometry(0.09, 0.1, 32), outerRingMat);
+      outerRing.position.z = 0.001;
+      markerGroup.add(outerRing);
+    }
 
     if (stop.showLabel !== false) {
       label = createCityLabel(t(stop.id, "name", stop.name));
@@ -342,7 +368,7 @@ function buildMarkers() {
     }
 
     globeGroup.add(markerGroup);
-    markerObjects.push({ group: markerGroup, dot, ring, label, stop });
+    markerObjects.push({ group: markerGroup, dot, ring, outerRing, label, stop, isCurrent });
   });
 }
 buildMarkers();
@@ -378,6 +404,9 @@ function updateMarkerScale() {
   markerObjects.forEach((marker) => {
     marker.dot.scale.setScalar(dotScale);
     marker.ring.scale.setScalar(marker.ring.userData.pulse * ringScale);
+    if (marker.outerRing) {
+      marker.outerRing.scale.setScalar(marker.outerRing.userData.pulse * ringScale);
+    }
     if (marker.label) {
       marker.label.scale.copy(marker.label.userData.baseScale).multiplyScalar(labelScale);
     }
@@ -1142,6 +1171,11 @@ function animate() {
   markerObjects.forEach((m, i) => {
     const pulse = 1 + Math.sin(elapsed * 2.4 + i) * 0.18;
     m.ring.userData.pulse = pulse;
+    if (m.outerRing) {
+      // Ritmo mais lento e defasado do anel de dentro, pra parecer duas
+      // ondas se espalhando em vez de uma coisa só piscando junto.
+      m.outerRing.userData.pulse = 1 + Math.sin(elapsed * 1.6 + Math.PI / 2) * 0.3;
+    }
   });
 
   routeObjects.forEach((route) => {
