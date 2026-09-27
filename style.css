@@ -31,6 +31,46 @@ body {
   z-index: 0;
 }
 
+#loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: var(--void);
+  transition: opacity 0.5s ease;
+}
+
+#loading-overlay.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid rgba(201, 162, 75, 0.22);
+  border-top-color: var(--gold);
+  animation: loading-spin 0.9s linear infinite;
+}
+
+@keyframes loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+#loading-text {
+  font-family: "Manrope", sans-serif;
+  font-size: 13px;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+}
+
 .label-renderer {
   position: fixed;
   inset: 0;

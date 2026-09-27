@@ -134,11 +134,34 @@ buildStarfield();
 // ============================================================
 
 const textureLoader = new THREE.TextureLoader();
+
+// Overlay discreto enquanto a textura da Terra (alguns MB) carrega — sem
+// isso, o globo aparecia "pelado" por um instante antes da imagem chegar.
+let texturesPending = 2;
+function hideLoadingOverlay() {
+  const overlay = document.getElementById("loading-overlay");
+  if (!overlay || overlay.classList.contains("hidden")) return;
+  overlay.classList.add("hidden");
+  setTimeout(() => overlay.remove(), 500);
+}
+function markTextureSettled() {
+  texturesPending -= 1;
+  if (texturesPending <= 0) hideLoadingOverlay();
+}
+// Rede lenta ou travada: nunca deixa o overlay preso pra sempre.
+setTimeout(hideLoadingOverlay, 8000);
+
 const earthTexture = textureLoader.load(
-  "https://cdn.jsdelivr.net/npm/three-globe@2.31.1/example/img/earth-blue-marble.jpg"
+  "https://cdn.jsdelivr.net/npm/three-globe@2.31.1/example/img/earth-blue-marble.jpg",
+  markTextureSettled,
+  undefined,
+  markTextureSettled
 );
 const earthBumpMap = textureLoader.load(
-  "https://cdn.jsdelivr.net/npm/three-globe@2.31.1/example/img/earth-topology.png"
+  "https://cdn.jsdelivr.net/npm/three-globe@2.31.1/example/img/earth-topology.png",
+  markTextureSettled,
+  undefined,
+  markTextureSettled
 );
 
 const globeGroup = new THREE.Group();
@@ -155,6 +178,10 @@ overviewToggle.textContent = tUI("overview", "Visão geral");
 const initialHintEl = document.getElementById("hint-text");
 if (initialHintEl) {
   initialHintEl.textContent = tUI("hint", "arraste para girar · role para dar zoom");
+}
+const initialLoadingEl = document.getElementById("loading-text");
+if (initialLoadingEl) {
+  initialLoadingEl.textContent = tUI("loading", "carregando o globo…");
 }
 
 rotationToggle.addEventListener("click", () => {
