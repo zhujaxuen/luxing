@@ -170,11 +170,13 @@ scene.add(globeGroup);
 let isAutoRotating = false;
 const rotationToggle = document.getElementById("rotation-toggle");
 const overviewToggle = document.getElementById("overview-toggle");
+const replayToggle = document.getElementById("replay-toggle");
 
 // Sincroniza o texto inicial dos botões e da dica com o idioma salvo
 // (o HTML vem em português por padrão).
 rotationToggle.textContent = tUI("startRotation", "Iniciar giro");
 overviewToggle.textContent = tUI("overview", "Visão geral");
+replayToggle.textContent = tUI("startReplay", "▶ Replay da viagem");
 const initialHintEl = document.getElementById("hint-text");
 if (initialHintEl) {
   initialHintEl.textContent = tUI("hint", "arraste para girar · role para dar zoom");
@@ -189,6 +191,7 @@ rotationToggle.addEventListener("click", () => {
   // trajeto, o botão de giro não faz nada (evita cancelar algo que o
   // usuário pediu explicitamente pra ver).
   if (activeCameraFollow) return;
+  stopReplay();
 
   isAutoRotating = !isAutoRotating;
   rotationToggle.setAttribute("aria-pressed", String(isAutoRotating));
@@ -207,6 +210,7 @@ function stopAutoRotation() {
 }
 
 overviewToggle.addEventListener("click", () => {
+  stopReplay();
   activeCameraFollow = null;
   rotationToggle.classList.remove("busy");
   animateCamera(overviewPosition, overviewTarget);
@@ -835,6 +839,13 @@ function buildStats() {
     return from && to ? sum + haversineKm(from, to) : sum;
   }, 0);
 
+  // Cidades distintas na China — algumas paradas (ex.: Guangzhou) se
+  // repetem mais de uma vez no roteiro, então conta pelo nome, não pela
+  // quantidade de paradas.
+  const chineseCityCount = new Set(
+    TRIP.stops.filter((s) => s.country && s.country.startsWith("China")).map((s) => s.name)
+  ).size;
+
   const { phase, currentStop } = getTripPhase();
   const uiStrings = currentLang !== "pt" ? TRANSLATIONS[currentLang]?.ui : null;
   let statusHTML = "";
@@ -866,9 +877,12 @@ function buildStats() {
 
   const stopsLabel = currentLang === "pt" ? "paradas" : tUI("statsStops", "stops");
   const kmLabel = currentLang === "pt" ? "km" : tUI("statsKmSuffix", "km");
+  const chinaCitiesLabel =
+    currentLang === "pt" ? "cidades na China" : tUI("statsChinaCities", "cities in China");
 
   stats.innerHTML = `
     <span><strong>${TRIP.stops.length}</strong> ${stopsLabel}</span>
+    <span><strong>${chineseCityCount}</strong> ${chinaCitiesLabel}</span>
     <span><strong>${Math.round(totalKm).toLocaleString("pt-BR")}</strong> ${kmLabel}</span>
     ${statusHTML ? `<span>${statusHTML}</span>` : ""}
   `;
@@ -995,13 +1009,73 @@ function buildTimeline() {
       <p>${t(stop.id, "description", stop.description)}</p>
       ${routeInfoHTML}
     `;
-    el.addEventListener("click", () => selectStop(stop.id, true));
+    el.addEventListener("click", () => {
+      stopReplay();
+      selectStop(stop.id, true);
+    });
     timeline.appendChild(el);
   });
 
   updateTimelineState();
 }
 buildTimeline();
+
+// ============================================================
+// Replay da viagem: percorre todas as paradas sozinho, na ordem
+// ============================================================
+
+let isReplaying = false;
+let replayIndex = 0;
+let replayTimeoutId = null;
+
+function getReplayDelay(stop) {
+  // Se a parada tem um trajeto de saída com a câmera acompanhando, espera
+  // o trajeto todo terminar (+ um tempo extra pra dar de ler). Senão, um
+  // tempo fixo já é suficiente (o "voo até lá" normal dura menos de 1s).
+  const route = TRIP.routes.find((r) => r.from === stop.id);
+  if (route && CAMERA_FOLLOW_ROUTE_KEYS.has(`${route.from}:${route.to}`)) {
+    return getRouteDuration(route) * 1000 + 2500;
+  }
+  return 3200;
+}
+
+function stopReplay() {
+  if (!isReplaying) return;
+  isReplaying = false;
+  clearTimeout(replayTimeoutId);
+  replayToggle.setAttribute("aria-pressed", "false");
+  replayToggle.textContent = tUI("startReplay", "▶ Replay da viagem");
+}
+
+function playNextReplayStep() {
+  if (!isReplaying) return;
+  if (replayIndex >= TRIP.stops.length) {
+    stopReplay();
+    return;
+  }
+  const stop = TRIP.stops[replayIndex];
+  selectStop(stop.id, true);
+  document.querySelector(`.stop[data-id="${stop.id}"]`)?.scrollIntoView({
+    behavior: "smooth",
+    block: "center",
+  });
+  const delay = getReplayDelay(stop);
+  replayIndex += 1;
+  replayTimeoutId = setTimeout(playNextReplayStep, delay);
+}
+
+function startReplay() {
+  isReplaying = true;
+  replayIndex = 0;
+  replayToggle.setAttribute("aria-pressed", "true");
+  replayToggle.textContent = tUI("stopReplay", "⏸ Parar replay");
+  playNextReplayStep();
+}
+
+replayToggle.addEventListener("click", () => {
+  if (isReplaying) stopReplay();
+  else startReplay();
+});
 
 // ============================================================
 // Seletor de idioma
@@ -1019,9 +1093,15 @@ function applyLanguage(lang) {
     ? tUI("stopRotation", "Parar giro")
     : tUI("startRotation", "Iniciar giro");
   overviewToggle.textContent = tUI("overview", "Visão geral");
+  replayToggle.textContent = isReplaying
+    ? tUI("stopReplay", "⏸ Parar replay")
+    : tUI("startReplay", "▶ Replay da viagem");
 
   const hintEl = document.getElementById("hint-text");
   if (hintEl) hintEl.textContent = tUI("hint", "arraste para girar · role para dar zoom");
+
+  const loadingEl = document.getElementById("loading-text");
+  if (loadingEl) loadingEl.textContent = tUI("loading", "carregando o globo…");
 
   // Reconstrói a legenda com os novos rótulos, mantendo os filtros que já
   // estavam ativos (o estado de verdade é o Set filteredOutTypes, não as
@@ -1165,6 +1245,7 @@ function onClick(event) {
   const hits = raycaster.intersectObjects(dots);
   if (hits.length > 0) {
     const hit = markerObjects.find((m) => m.dot === hits[0].object);
+    stopReplay();
     selectStop(hit.stop.id, true);
     document.querySelector(`.stop[data-id="${hit.stop.id}"]`)?.scrollIntoView({
       behavior: "smooth",
@@ -1276,4 +1357,59 @@ if (initialPhase === "during" && initialCurrentStop) {
   });
 } else if (TRIP.stops.length > 0) {
   selectStop(TRIP.stops[0].id, false);
+}
+
+// ============================================================
+// Easter egg — 5 cliques no título em menos de ~700ms entre cada um
+// ============================================================
+
+(function setupTitleEasterEgg() {
+  const titleEl = document.getElementById("trip-title");
+  if (!titleEl) return;
+
+  let clickCount = 0;
+  let lastClickAt = 0;
+
+  titleEl.addEventListener("click", () => {
+    const now = Date.now();
+    if (now - lastClickAt > 700) clickCount = 0;
+    lastClickAt = now;
+    clickCount += 1;
+
+    if (clickCount >= 5) {
+      clickCount = 0;
+      launchConfetti();
+      showEasterEggMessage();
+    }
+  });
+})();
+
+function launchConfetti() {
+  const colors = ["#c9a24b", "#c1432e", "#6fb3a8", "#edeae2"];
+  const pieceCount = 36;
+
+  for (let i = 0; i < pieceCount; i++) {
+    const piece = document.createElement("div");
+    piece.className = "confetti-piece";
+    piece.style.left = `${42 + Math.random() * 14}%`;
+    piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+    piece.style.setProperty("--drift", `${(Math.random() - 0.5) * 240}px`);
+    piece.style.setProperty("--rotate", `${Math.random() * 720 - 360}deg`);
+    piece.style.animationDuration = `${1.6 + Math.random() * 0.9}s`;
+    piece.style.animationDelay = `${Math.random() * 0.15}s`;
+    document.body.appendChild(piece);
+    piece.addEventListener("animationend", () => piece.remove());
+  }
+}
+
+function showEasterEggMessage() {
+  const msg = document.createElement("div");
+  msg.className = "easter-egg-message";
+  msg.textContent = tUI("easterEgg", "você chegou até aqui 🎉");
+  document.body.appendChild(msg);
+  requestAnimationFrame(() => msg.classList.add("visible"));
+  setTimeout(() => {
+    msg.classList.remove("visible");
+    setTimeout(() => msg.remove(), 400);
+  }, 2200);
 }

@@ -231,6 +231,23 @@ header p {
   border-color: var(--gold);
 }
 
+.replay-toggle {
+  border: 1px solid rgba(201, 162, 75, 0.45);
+  border-radius: 8px;
+  padding: 9px 12px;
+  background: rgba(18, 24, 43, 0.7);
+  color: var(--text);
+  font: 500 13px "Manrope", sans-serif;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.replay-toggle:hover,
+.replay-toggle[aria-pressed="true"] {
+  background: rgba(201, 162, 75, 0.16);
+  border-color: var(--gold);
+}
+
 .rotation-toggle:hover,
 .rotation-toggle[aria-pressed="true"] {
   background: rgba(201, 162, 75, 0.16);
@@ -600,4 +617,53 @@ header p {
   #panel {
     height: min(35vh, 300px);
   }
+}
+
+/* ---------- Easter egg ---------- */
+
+.confetti-piece {
+  position: fixed;
+  top: 60px;
+  width: 7px;
+  height: 12px;
+  border-radius: 2px;
+  opacity: 0.95;
+  z-index: 30;
+  pointer-events: none;
+  animation-name: confetti-fall;
+  animation-timing-function: ease-in;
+  animation-fill-mode: forwards;
+}
+
+@keyframes confetti-fall {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--drift), 60vh) rotate(var(--rotate));
+    opacity: 0;
+  }
+}
+
+.easter-egg-message {
+  position: fixed;
+  top: 90px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-8px);
+  z-index: 30;
+  background: rgba(18, 24, 43, 0.92);
+  border: 1px solid rgba(201, 162, 75, 0.4);
+  color: var(--text);
+  font: 500 13px "Manrope", sans-serif;
+  padding: 10px 18px;
+  border-radius: 20px;
+  opacity: 0;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: none;
+}
+
+.easter-egg-message.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
