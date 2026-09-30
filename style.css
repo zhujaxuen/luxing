@@ -9,6 +9,7 @@
   --jade: #6fb3a8;
   --text: #edeae2;
   --text-muted: #8891a6;
+  --header-height: 132px;
 }
 
 * {
@@ -295,7 +296,7 @@ header p {
   bottom: 0;
   width: 340px;
   z-index: 9;
-  padding: 132px 0 24px;
+  padding: calc(var(--header-height, 132px) + 14px) 0 24px;
   overflow-y: auto;
   background: linear-gradient(180deg, rgba(18, 24, 43, 0.85), rgba(10, 14, 26, 0.92));
   backdrop-filter: blur(14px);

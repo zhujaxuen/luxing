@@ -59,6 +59,24 @@ function tRouteLabel(type) {
 document.getElementById("trip-title").textContent = tTrip("title", TRIP.title);
 document.getElementById("trip-subtitle").textContent = tTrip("subtitle", TRIP.subtitle);
 
+// A lista lateral (#panel) usa --header-height pra saber onde começar,
+// em vez de um valor fixo — o cabeçalho muda de altura (idioma diferente,
+// estatística nova, tela estreita fazendo o texto quebrar linha etc.) e um
+// valor fixo sempre acabava ficando desatualizado em algum desses casos.
+(function keepHeaderHeightInSync() {
+  const headerEl = document.querySelector("header");
+  if (!headerEl) return;
+  const update = () => {
+    document.documentElement.style.setProperty("--header-height", `${headerEl.offsetHeight}px`);
+  };
+  if ("ResizeObserver" in window) {
+    new ResizeObserver(update).observe(headerEl);
+  } else {
+    window.addEventListener("resize", update);
+  }
+  update();
+})();
+
 const canvas = document.getElementById("globe-canvas");
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
