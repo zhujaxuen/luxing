@@ -1,6 +1,6 @@
 # 我的旅行 · Minha viagem à China
 
-De Curitiba à China, com uma escala em Istambul no meio do caminho.
+De Curitiba à China, com escala em Istambul.
 
 Vinte e três dias, quinze paradas no total, sete cidades chinesas. Duas voltas por Guangzhou, passeios em Hong Kong, Shenzhen, Beijing e um reencontro com a família em Yangzhou que é o motivo de tudo isso existir. Este repositório guarda o roteiro inteiro e o site nasceu pra contar essa história.
 
