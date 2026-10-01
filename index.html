@@ -49,6 +49,9 @@ Visão geral
 <button id="replay-toggle" class="replay-toggle" type="button" aria-pressed="false">
 ▶ Replay da viagem
 </button>
+<button id="photos-toggle" class="photos-toggle" type="button" hidden>
+📷 Fotos
+</button>
 <button id="rotation-toggle" class="rotation-toggle" type="button" aria-pressed="false">
 Iniciar giro
 </button>
@@ -66,6 +69,19 @@ Iniciar giro
 </div>
 
 <div class="hint" id="hint-text">arraste para girar · role para dar zoom</div>
+
+<div id="photo-gallery" class="photo-gallery" hidden>
+<button id="gallery-close" class="gallery-close" type="button" aria-label="Fechar">✕</button>
+<button id="gallery-replay" class="gallery-replay" type="button">▶ Replay</button>
+<button id="gallery-prev" class="gallery-nav gallery-prev" type="button" aria-label="Anterior">‹</button>
+<button id="gallery-next" class="gallery-nav gallery-next" type="button" aria-label="Próxima">›</button>
+<img id="gallery-image" class="gallery-image" src="" alt="" />
+<div class="gallery-caption">
+<div id="gallery-caption-title"></div>
+<div id="gallery-caption-meta" class="gallery-caption-meta"></div>
+</div>
+<div class="gallery-dots" id="gallery-dots"></div>
+</div>
 
 <script type="importmap">
 {

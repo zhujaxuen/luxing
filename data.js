@@ -9,6 +9,12 @@
 // código pra saber em que fase a viagem está (antes / durante / depois) e,
 // durante a viagem, em qual cidade vocês estão agora. Não aparecem em
 // lugar nenhum da tela — quem aparece é o campo "date" (texto livre).
+//
+// image (opcional): caminho pra uma foto sua daquela parada, ex.:
+// image: "fotos/beijing.jpg". Coloque os arquivos numa pasta "fotos/" na
+// raiz do projeto. Sem esse campo, a parada continua funcionando
+// normalmente — só não aparece foto nela nem na galeria. O botão "Fotos"
+// no cabeçalho só aparece quando pelo menos uma parada tiver esse campo.
 // ============================================================
 
 const TRIP = {

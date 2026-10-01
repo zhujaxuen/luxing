@@ -1017,6 +1017,17 @@ function buildTimeline() {
       }
     }
 
+    const photoHTML = stop.image
+      ? `<button type="button" class="photo-thumb" data-photo-for="${stop.id}" aria-label="Ver foto de ${t(
+          stop.id,
+          "name",
+          stop.name
+        )}">
+           <img src="${stop.image}" alt="" loading="lazy" />
+           <span class="photo-expand-hint" aria-hidden="true">⤢</span>
+         </button>`
+      : "";
+
     const el = document.createElement("div");
     el.className = "stop";
     el.dataset.id = stop.id;
@@ -1026,11 +1037,20 @@ function buildTimeline() {
       <div class="tag">${t(stop.id, "tag", stop.tag)}</div>
       <p>${t(stop.id, "description", stop.description)}</p>
       ${routeInfoHTML}
+      ${photoHTML}
     `;
-    el.addEventListener("click", () => {
+    el.addEventListener("click", (event) => {
+      if (event.target.closest(".photo-thumb")) return;
       stopReplay();
       selectStop(stop.id, true);
     });
+    const photoThumb = el.querySelector(".photo-thumb");
+    if (photoThumb) {
+      photoThumb.addEventListener("click", (event) => {
+        event.stopPropagation();
+        openGallery(stop.id);
+      });
+    }
     timeline.appendChild(el);
   });
 
@@ -1096,6 +1116,150 @@ replayToggle.addEventListener("click", () => {
 });
 
 // ============================================================
+// Galeria de fotos
+// ============================================================
+// Só aparece (botão "Fotos" no cabeçalho) quando pelo menos uma parada
+// tiver o campo "image" preenchido no data.js. Até lá, fica tudo
+// desligado e invisível — não muda nada no site.
+
+const photoStops = TRIP.stops.filter((stop) => stop.image);
+const photosToggle = document.getElementById("photos-toggle");
+const galleryEl = document.getElementById("photo-gallery");
+const galleryImageEl = document.getElementById("gallery-image");
+const galleryTitleEl = document.getElementById("gallery-caption-title");
+const galleryMetaEl = document.getElementById("gallery-caption-meta");
+const galleryDotsEl = document.getElementById("gallery-dots");
+const galleryCloseBtn = document.getElementById("gallery-close");
+const galleryPrevBtn = document.getElementById("gallery-prev");
+const galleryNextBtn = document.getElementById("gallery-next");
+const galleryReplayBtn = document.getElementById("gallery-replay");
+
+let galleryIndex = 0;
+let isGalleryOpen = false;
+let isGalleryReplaying = false;
+let galleryReplayTimeoutId = null;
+const GALLERY_REPLAY_DELAY_MS = 3500;
+
+if (photoStops.length > 0 && photosToggle) {
+  photosToggle.hidden = false;
+  photosToggle.textContent = tUI("photos", "📷 Fotos");
+  galleryReplayBtn.textContent = tUI("galleryReplayStart", "▶ Replay");
+  photosToggle.addEventListener("click", () => openGallery(photoStops[0].id));
+
+  buildGalleryDots();
+
+  galleryCloseBtn.addEventListener("click", closeGallery);
+  galleryPrevBtn.addEventListener("click", () => {
+    stopGalleryReplay();
+    showGalleryPhoto(galleryIndex - 1);
+  });
+  galleryNextBtn.addEventListener("click", () => {
+    stopGalleryReplay();
+    showGalleryPhoto(galleryIndex + 1);
+  });
+  galleryReplayBtn.addEventListener("click", () => {
+    if (isGalleryReplaying) stopGalleryReplay();
+    else startGalleryReplay();
+  });
+
+  galleryEl.addEventListener("click", (event) => {
+    if (event.target === galleryEl) closeGallery();
+  });
+
+  window.addEventListener("keydown", (event) => {
+    if (!isGalleryOpen) return;
+    if (event.key === "Escape") closeGallery();
+    if (event.key === "ArrowLeft") {
+      stopGalleryReplay();
+      showGalleryPhoto(galleryIndex - 1);
+    }
+    if (event.key === "ArrowRight") {
+      stopGalleryReplay();
+      showGalleryPhoto(galleryIndex + 1);
+    }
+  });
+
+  // Deslizar no celular (sem setas visíveis lá, ver CSS)
+  let touchStartX = null;
+  galleryEl.addEventListener("touchstart", (event) => {
+    touchStartX = event.touches[0].clientX;
+  });
+  galleryEl.addEventListener("touchend", (event) => {
+    if (touchStartX === null) return;
+    const deltaX = event.changedTouches[0].clientX - touchStartX;
+    touchStartX = null;
+    if (Math.abs(deltaX) < 40) return;
+    stopGalleryReplay();
+    showGalleryPhoto(galleryIndex + (deltaX < 0 ? 1 : -1));
+  });
+}
+
+function buildGalleryDots() {
+  galleryDotsEl.innerHTML = "";
+  photoStops.forEach((_, i) => {
+    const dot = document.createElement("span");
+    dot.className = "dot";
+    dot.dataset.index = String(i);
+    galleryDotsEl.appendChild(dot);
+  });
+}
+
+function showGalleryPhoto(index) {
+  if (photoStops.length === 0) return;
+  galleryIndex = (index + photoStops.length) % photoStops.length;
+  const stop = photoStops[galleryIndex];
+
+  galleryImageEl.src = stop.image;
+  galleryImageEl.alt = t(stop.id, "name", stop.name);
+  galleryTitleEl.textContent = t(stop.id, "name", stop.name);
+  galleryMetaEl.textContent = `${t(stop.id, "date", stop.date)} · ${t(stop.id, "tag", stop.tag)}`;
+
+  galleryDotsEl.querySelectorAll(".dot").forEach((dot, i) => {
+    dot.classList.toggle("active", i === galleryIndex);
+  });
+}
+
+function openGallery(stopId) {
+  if (photoStops.length === 0) return;
+  stopReplay();
+  const startIndex = photoStops.findIndex((s) => s.id === stopId);
+  galleryEl.hidden = false;
+  requestAnimationFrame(() => galleryEl.classList.add("visible"));
+  isGalleryOpen = true;
+  showGalleryPhoto(startIndex >= 0 ? startIndex : 0);
+}
+
+function closeGallery() {
+  stopGalleryReplay();
+  isGalleryOpen = false;
+  galleryEl.classList.remove("visible");
+  setTimeout(() => {
+    galleryEl.hidden = true;
+  }, 250);
+}
+
+function startGalleryReplay() {
+  isGalleryReplaying = true;
+  galleryReplayBtn.setAttribute("aria-pressed", "true");
+  galleryReplayBtn.textContent = tUI("galleryReplayStop", "⏸ Parar");
+  playNextGalleryReplayStep();
+}
+
+function stopGalleryReplay() {
+  if (!isGalleryReplaying) return;
+  isGalleryReplaying = false;
+  clearTimeout(galleryReplayTimeoutId);
+  galleryReplayBtn.setAttribute("aria-pressed", "false");
+  galleryReplayBtn.textContent = tUI("galleryReplayStart", "▶ Replay");
+}
+
+function playNextGalleryReplayStep() {
+  if (!isGalleryReplaying) return;
+  showGalleryPhoto(galleryIndex + 1);
+  galleryReplayTimeoutId = setTimeout(playNextGalleryReplayStep, GALLERY_REPLAY_DELAY_MS);
+}
+
+// ============================================================
 // Seletor de idioma
 // ============================================================
 
@@ -1114,6 +1278,14 @@ function applyLanguage(lang) {
   replayToggle.textContent = isReplaying
     ? tUI("stopReplay", "⏸ Parar replay")
     : tUI("startReplay", "▶ Replay da viagem");
+
+  if (photoStops.length > 0 && photosToggle) {
+    photosToggle.textContent = tUI("photos", "📷 Fotos");
+    galleryReplayBtn.textContent = isGalleryReplaying
+      ? tUI("galleryReplayStop", "⏸ Parar")
+      : tUI("galleryReplayStart", "▶ Replay");
+    if (isGalleryOpen) showGalleryPhoto(galleryIndex);
+  }
 
   const hintEl = document.getElementById("hint-text");
   if (hintEl) hintEl.textContent = tUI("hint", "arraste para girar · role para dar zoom");
