@@ -16,6 +16,7 @@ const TRANSLATIONS = {
     ui: {
       startRotation: "Start rotation",
       stopRotation: "Stop rotation",
+      playTrip: "▶ Play the trip",
       startReplay: "▶ Replay the trip",
       stopReplay: "⏸ Stop replay",
       photos: "📷 Photos",
@@ -151,6 +152,7 @@ const TRANSLATIONS = {
     ui: {
       startRotation: "开始旋转",
       stopRotation: "停止旋转",
+      playTrip: "▶ 播放旅程",
       startReplay: "▶ 回放旅程",
       stopReplay: "⏸ 停止回放",
       photos: "📷 照片",

@@ -190,11 +190,17 @@ const rotationToggle = document.getElementById("rotation-toggle");
 const overviewToggle = document.getElementById("overview-toggle");
 const replayToggle = document.getElementById("replay-toggle");
 
+function replayStartLabel() {
+  return getTripPhase().phase === "after"
+    ? tUI("startReplay", "▶ Replay da viagem")
+    : tUI("playTrip", "▶ Play da viagem");
+}
+
 // Sincroniza o texto inicial dos botões e da dica com o idioma salvo
 // (o HTML vem em português por padrão).
 rotationToggle.textContent = tUI("startRotation", "Iniciar giro");
 overviewToggle.textContent = tUI("overview", "Visão geral");
-replayToggle.textContent = tUI("startReplay", "▶ Replay da viagem");
+replayToggle.textContent = replayStartLabel();
 const initialHintEl = document.getElementById("hint-text");
 if (initialHintEl) {
   initialHintEl.textContent = tUI("hint", "arraste para girar · role para dar zoom");
@@ -1083,7 +1089,8 @@ function stopReplay() {
   isReplaying = false;
   clearTimeout(replayTimeoutId);
   replayToggle.setAttribute("aria-pressed", "false");
-  replayToggle.textContent = tUI("startReplay", "▶ Replay da viagem");
+  replayToggle.textContent = replayStartLabel();
+  rotationToggle.hidden = false;
 }
 
 function playNextReplayStep() {
@@ -1108,6 +1115,7 @@ function startReplay() {
   replayIndex = 0;
   replayToggle.setAttribute("aria-pressed", "true");
   replayToggle.textContent = tUI("stopReplay", "⏸ Parar replay");
+  rotationToggle.hidden = true;
   playNextReplayStep();
 }
 
@@ -1278,7 +1286,7 @@ function applyLanguage(lang) {
   overviewToggle.textContent = tUI("overview", "Visão geral");
   replayToggle.textContent = isReplaying
     ? tUI("stopReplay", "⏸ Parar replay")
-    : tUI("startReplay", "▶ Replay da viagem");
+    : replayStartLabel();
 
   if (photoStops.length > 0 && photosToggle) {
     photosToggle.textContent = tUI("photos", "📷 Fotos");
