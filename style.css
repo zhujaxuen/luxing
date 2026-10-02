@@ -621,6 +621,7 @@ header p {
   }
 
   .legend {
+    display: none;
     gap: 8px;
     padding: 6px 8px;
     border-radius: 9px;
