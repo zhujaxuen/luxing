@@ -107,7 +107,7 @@ if (window.innerWidth <= 720) {
 
 if (window.innerWidth <= 430 && window.innerHeight >= 800) {
   camera.position.set(0, 0.65, 11.4);
-  controls.target.set(0, -1.55, 0);
+  controls.target.set(0, -0.45, 0);
   controls.update();
 }
 
@@ -1088,6 +1088,24 @@ function getReplayDelay(stop) {
   return 3200;
 }
 
+function scrollReplayStopIntoView(stopElement) {
+  if (window.matchMedia("(max-width: 720px)").matches) {
+    const alignStop = () => {
+      if (!isReplaying || !stopElement.classList.contains("active")) return;
+      const panel = document.getElementById("panel");
+      const panelTop = panel.getBoundingClientRect().top;
+      const stopTop = stopElement.getBoundingClientRect().top;
+      panel.scrollTop += stopTop - panelTop - 14;
+    };
+
+    alignStop();
+    window.setTimeout(alignStop, 280);
+    return;
+  }
+
+  stopElement.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
 function stopReplay() {
   if (!isReplaying) return;
   isReplaying = false;
@@ -1110,10 +1128,8 @@ function playNextReplayStep() {
   }
   const stop = TRIP.stops[replayIndex];
   selectStop(stop.id, true);
-  document.querySelector(`.stop[data-id="${stop.id}"]`)?.scrollIntoView({
-    behavior: "smooth",
-    block: "center",
-  });
+  const stopElement = document.querySelector(`.stop[data-id="${stop.id}"]`);
+  if (stopElement) scrollReplayStopIntoView(stopElement);
   const delay = getReplayDelay(stop);
   replayIndex += 1;
   replayTimeoutId = setTimeout(playNextReplayStep, delay);
@@ -1521,7 +1537,9 @@ function animate() {
       // Só atualiza qual parada fica destacada na timeline — não chama
       // selectStop() completo, porque isso deixaria visível (e animando)
       // o ícone da PRÓXIMA rota sozinho, sem o usuário ter clicado nela.
-      activeStopId = route.to;
+      if (!isReplaying) {
+        activeStopId = route.to;
+      }
       updateTimelineState();
       rotationToggle.classList.remove("busy");
       overviewToggle.hidden = false;
