@@ -159,6 +159,13 @@ header p {
   font-variant-numeric: tabular-nums;
 }
 
+.stats-distance-countdown {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  white-space: nowrap;
+}
+
 .legend {
   pointer-events: auto;
   display: flex;
@@ -448,7 +455,7 @@ header p {
   margin: 0;
   font-size: 12.5px;
   line-height: 1.5;
-  color: var(--gold);
+  color: var(--route-color, var(--gold));
   max-height: 0;
   overflow: hidden;
   opacity: 0;
@@ -462,7 +469,7 @@ header p {
 }
 
 .stop .route-info strong {
-  color: var(--text);
+  color: var(--route-color, var(--gold));
 }
 
 .stop .photo-thumb {
@@ -558,6 +565,10 @@ header p {
 }
 
 @media (max-width: 720px) {
+  :root {
+    --mobile-panel-height: min(28vh, 260px);
+  }
+
   html,
   body {
     min-height: 100%;
@@ -565,7 +576,7 @@ header p {
 
   #panel {
     width: 100%;
-    height: min(34vh, 310px);
+    height: var(--mobile-panel-height);
     bottom: 0;
     top: auto;
     padding: 14px 0 max(14px, env(safe-area-inset-bottom));
@@ -666,7 +677,7 @@ header p {
 
   .hint {
     right: 14px;
-    bottom: calc(min(34vh, 310px) + 10px);
+    bottom: calc(var(--mobile-panel-height) + 10px);
     font-size: 10px;
   }
 }
@@ -678,8 +689,12 @@ header p {
 }
 
 @media (max-width: 430px) and (min-height: 800px) {
+  :root {
+    --mobile-panel-height: min(28vh, 260px);
+  }
+
   #panel {
-    height: min(35vh, 300px);
+    height: var(--mobile-panel-height);
   }
 }
 

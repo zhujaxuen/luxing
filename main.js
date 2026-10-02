@@ -897,12 +897,18 @@ function buildStats() {
   const kmLabel = currentLang === "pt" ? "km" : tUI("statsKmSuffix", "km");
   const chinaCitiesLabel =
     currentLang === "pt" ? "cidades na China" : tUI("statsChinaCities", "cities in China");
+  const formattedTotalKm = Math.round(totalKm).toLocaleString("pt-BR");
+  const distanceHTML = `<span><strong>${formattedTotalKm}</strong> ${kmLabel}</span>`;
+  const distanceAndStatus =
+    phase === "before" && statusHTML
+      ? `<span class="stats-distance-countdown">${distanceHTML}<span>${statusHTML}</span></span>`
+      : distanceHTML;
 
   stats.innerHTML = `
     <span><strong>${TRIP.stops.length}</strong> ${stopsLabel}</span>
     <span><strong>${chineseCityCount}</strong> ${chinaCitiesLabel}</span>
-    <span><strong>${Math.round(totalKm).toLocaleString("pt-BR")}</strong> ${kmLabel}</span>
-    ${statusHTML ? `<span>${statusHTML}</span>` : ""}
+    ${distanceAndStatus}
+    ${statusHTML && phase !== "before" ? `<span>${statusHTML}</span>` : ""}
   `;
 }
 buildStats();
@@ -946,6 +952,7 @@ function getNextLegInfo(stopId) {
     km: Math.round(km),
     duration: formatDuration(km / speed),
     typeLabel: tRouteLabel(route.type),
+    type: route.type,
   };
 }
 
@@ -1001,14 +1008,16 @@ function buildTimeline() {
     const legInfo = getNextLegInfo(stop.id);
     let routeInfoHTML = "";
     if (legInfo) {
+      const routeStyle = ROUTE_STYLES[legInfo.type] || ROUTE_STYLES.voo;
+      const routeColor = `#${routeStyle.color.toString(16).padStart(6, "0")}`;
       if (currentLang === "pt") {
-        routeInfoHTML = `<div class="route-info">
+        routeInfoHTML = `<div class="route-info" style="--route-color: ${routeColor}">
            <strong>${legInfo.km.toLocaleString("pt-BR")} km</strong> até ${legInfo.toName}
            · cerca de ${legInfo.duration} de ${legInfo.typeLabel.toLowerCase()}
          </div>`;
       } else {
         const kmFormatted = legInfo.km.toLocaleString(currentLang === "zh" ? "zh-CN" : "en-US");
-        routeInfoHTML = `<div class="route-info">${TRANSLATIONS[currentLang].ui.routeInfo(
+        routeInfoHTML = `<div class="route-info" style="--route-color: ${routeColor}">${TRANSLATIONS[currentLang].ui.routeInfo(
           kmFormatted,
           legInfo.toName,
           legInfo.duration,
