@@ -893,22 +893,14 @@ function buildStats() {
     statusHTML = uiStrings && uiStrings.tripConcluded ? uiStrings.tripConcluded : "viagem concluída 🎉";
   }
 
-  const stopsLabel = currentLang === "pt" ? "paradas" : tUI("statsStops", "stops");
   const kmLabel = currentLang === "pt" ? "km" : tUI("statsKmSuffix", "km");
   const chinaCitiesLabel =
     currentLang === "pt" ? "cidades na China" : tUI("statsChinaCities", "cities in China");
-  const formattedTotalKm = Math.round(totalKm).toLocaleString("pt-BR");
-  const distanceHTML = `<span><strong>${formattedTotalKm}</strong> ${kmLabel}</span>`;
-  const distanceAndStatus =
-    phase === "before" && statusHTML
-      ? `<span class="stats-distance-countdown">${distanceHTML}<span>${statusHTML}</span></span>`
-      : distanceHTML;
 
   stats.innerHTML = `
-    <span><strong>${TRIP.stops.length}</strong> ${stopsLabel}</span>
     <span><strong>${chineseCityCount}</strong> ${chinaCitiesLabel}</span>
-    ${distanceAndStatus}
-    ${statusHTML && phase !== "before" ? `<span>${statusHTML}</span>` : ""}
+    <span><strong>${Math.round(totalKm).toLocaleString("pt-BR")}</strong> ${kmLabel}</span>
+    ${statusHTML ? `<span>${statusHTML}</span>` : ""}
   `;
 }
 buildStats();

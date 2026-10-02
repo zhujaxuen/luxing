@@ -159,13 +159,6 @@ header p {
   font-variant-numeric: tabular-nums;
 }
 
-.stats-distance-countdown {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 6px;
-  white-space: nowrap;
-}
-
 .legend {
   pointer-events: auto;
   display: flex;
