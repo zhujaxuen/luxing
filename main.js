@@ -1571,6 +1571,8 @@ if (initialPhase === "during" && initialCurrentStop) {
 } else if (TRIP.stops.length > 0) {
   selectStop(TRIP.stops[0].id, false);
 }
+overviewToggle.hidden = true;
+updateViewControlVisibility();
 
 // ============================================================
 // Easter egg — 5 cliques no título em menos de ~700ms entre cada um
