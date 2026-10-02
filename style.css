@@ -243,10 +243,16 @@ header p {
   transition: background 0.15s ease, border-color 0.15s ease;
 }
 
-.replay-toggle:hover,
 .replay-toggle[aria-pressed="true"] {
   background: rgba(201, 162, 75, 0.16);
   border-color: var(--gold);
+}
+
+@media (hover: hover) {
+  .replay-toggle:hover {
+    background: rgba(201, 162, 75, 0.16);
+    border-color: var(--gold);
+  }
 }
 
 .photos-toggle {
@@ -625,7 +631,6 @@ header p {
   }
 
   .legend {
-    display: none;
     gap: 8px;
     padding: 6px 8px;
     border-radius: 9px;
@@ -648,8 +653,7 @@ header p {
   }
 
   .rotation-toggle {
-    padding: 7px 9px;
-    font-size: 11px;
+    display: none;
   }
 
   .overview-toggle {
