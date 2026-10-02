@@ -218,10 +218,12 @@ rotationToggle.addEventListener("click", () => {
   stopReplay();
 
   isAutoRotating = !isAutoRotating;
+  if (isAutoRotating) overviewToggle.hidden = true;
   rotationToggle.setAttribute("aria-pressed", String(isAutoRotating));
   rotationToggle.textContent = isAutoRotating
     ? tUI("stopRotation", "Parar giro")
     : tUI("startRotation", "Iniciar giro");
+  updateViewControlVisibility();
 });
 
 // Clicar numa cidade sempre deve sobrepor o giro automático (se estiver
@@ -231,6 +233,7 @@ function stopAutoRotation() {
   isAutoRotating = false;
   rotationToggle.setAttribute("aria-pressed", "false");
   rotationToggle.textContent = tUI("startRotation", "Iniciar giro");
+  updateViewControlVisibility();
 }
 
 overviewToggle.addEventListener("click", () => {
@@ -239,6 +242,7 @@ overviewToggle.addEventListener("click", () => {
   rotationToggle.classList.remove("busy");
   animateCamera(overviewPosition, overviewTarget);
   overviewToggle.hidden = true;
+  updateViewControlVisibility();
   activeStopId = null;
   updateTimelineState();
   routeObjects.forEach((route) => {
@@ -1090,7 +1094,12 @@ function stopReplay() {
   clearTimeout(replayTimeoutId);
   replayToggle.setAttribute("aria-pressed", "false");
   replayToggle.textContent = replayStartLabel();
-  rotationToggle.hidden = false;
+  updateViewControlVisibility();
+}
+
+function updateViewControlVisibility() {
+  rotationToggle.hidden =
+    isReplaying || !overviewToggle.hidden || Boolean(activeCameraFollow);
 }
 
 function playNextReplayStep() {
@@ -1115,7 +1124,7 @@ function startReplay() {
   replayIndex = 0;
   replayToggle.setAttribute("aria-pressed", "true");
   replayToggle.textContent = tUI("stopReplay", "⏸ Parar replay");
-  rotationToggle.hidden = true;
+  updateViewControlVisibility();
   playNextReplayStep();
 }
 
@@ -1367,6 +1376,8 @@ function selectStop(id, flyTo) {
   const isStartingCameraFollow =
     Boolean(selectedStop && flyTo && routeToFollow) && startCameraFollow(routeToFollow);
 
+  if (isStartingCameraFollow) overviewToggle.hidden = true;
+
   if (selectedStop && flyTo && !isStartingCameraFollow) {
     const position = getStopWorldPosition(selectedStop);
     const target = position.normalize().multiplyScalar(3.8);
@@ -1374,6 +1385,7 @@ function selectStop(id, flyTo) {
     animateCamera(target, focusTarget);
     overviewToggle.hidden = false;
   }
+  updateViewControlVisibility();
 }
 
 let cameraAnimationId = 0;
@@ -1512,6 +1524,8 @@ function animate() {
       activeStopId = route.to;
       updateTimelineState();
       rotationToggle.classList.remove("busy");
+      overviewToggle.hidden = false;
+      updateViewControlVisibility();
       animateCamera(restorePosition, restoreTarget);
     } else {
       const { icon } = activeCameraFollow.route;
